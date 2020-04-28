@@ -1,0 +1,7 @@
+{
+	"explanation":	"OLEDÅBDisplay ModuleÅB128x32ÅB",
+	"numLeads":	4,
+	"rxLeads":	[0,0,0],
+	"ryLeads":	[1,2,3],
+	"posLeadInImg":	[4,7]
+}

@@ -1,0 +1,7 @@
+{
+	"explanation":	"DIPスイッチ。5P",
+	"numLeads":	10,
+	"rxLeads":	[1, 2, 3, 4, 4, 3, 2, 1, 0],
+	"ryLeads":	[0, 0, 0, 0, -3, -3, -3, -3, -3],
+	"posLeadInImg":	[8, 35]
+}

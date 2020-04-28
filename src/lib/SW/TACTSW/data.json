@@ -1,0 +1,7 @@
+{
+	"explanation":	"タクトスイッチ",
+	"numLeads":	4,
+	"rxLeads":	[2, 2, 0],
+	"ryLeads":	[0, -3, -3],
+	"posLeadInImg":	[4, 37]
+}

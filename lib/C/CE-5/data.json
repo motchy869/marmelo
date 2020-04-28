@@ -1,0 +1,7 @@
+{
+	"explanation":	"アルミ液体電解コンデンサ。Φ5mm。",
+	"numLeads":	2,
+	"rxLeads":	[1],
+	"ryLeads":	[0],
+	"posLeadInImg":	[6, 11]
+}

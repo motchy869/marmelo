@@ -1,0 +1,473 @@
+/*
+	ウィンドウ管理
+*/
+
+#module window_buffer	//バッファウィンドウ操作
+	#deffunc secureBuf int widTgt_, int sx_,int sy_, local flg_expand	//指定されたバッファに指定された大きさを確保する
+		assertEx ((sx_>=1)&&(sy_>=1))
+		gsel widTgt_ : sx=ginfo_sx : sy=ginfo_sy
+		flg_expand=FALSE : sx2=sx : sy2=sy
+		if (sx_>sx) {flg_expand=TRUE : sx2=sx_}
+		if (sy_>sy) {flg_expand=TRUE : sy2=sy_}
+		if (flg_expand) {buffer widTgt_, sx2,sy2}
+		return
+	#deffunc resizeBufWnd int widTgt_, int sxNew_, int syNew_	//バッファウィンドウのリサイズ(内容を保持)
+		/*
+			widTgt_ : 対象ウィンドウID
+			sxNew_,syNew_ : 新しいサイズ
+		*/
+		assertEx ((sxNew_>=1)&&(syNew_>=1))
+		secureBuf WID_GENERAL, sxNew_,syNew_
+		gmode 0 : pos 0,0 : gcopy widTgt_, 0,0, sxNew_,syNew_	//バッファに退避
+		buffer widTgt_, sxNew_,syNew_ : gmode 0 : gcopy WID_GENERAL, 0,0, sxNew_,syNew_
+		return
+#global
+
+#module window_smallFuncs	//小規模関数群
+	#defcfunc getWndStat int hwnd_
+		wndstat=WNDSTAT_NORMAL
+		if (IsZoomed(hwnd_)) {wndstat|=WNDSTAT_MAXIMIZED}
+		if (IsIconic(hwnd_)) {wndstat|=WNDSTAT_MINIMIZED}
+		return wndstat
+	#deffunc chMag int mag_, double xCntrMag_, double yCntrMag_	//表示倍率変更
+		/*
+			mag_ : 1,2,4
+			xCntrMag_,yCntrMag_ : 拡大中心の基板座標
+		*/
+		assertEx (mag_==1)||(mag_==2)|(mag_==4)
+		r=double(mag_)/magDisp@
+		xCntrMagOnGPC=offsetGpcTopLeftHole@+xCntrMag_*pitch2px@ : yCntrMagOnGPC=offsetGpcTopLeftHole@+yCntrMag_*pitch2px@
+		xofst_viewGPC@=limit(xCntrMagOnGPC+double(xofst_viewGPC@-xCntrMagOnGPC)/r, 0,MAX_INT) : yofst_viewGPC@=limit(yCntrMagOnGPC+double(yofst_viewGPC@-yCntrMagOnGPC)/r, 0,MAX_INT)
+		magDisp@=mag_ : arrangeMenuBarStat : arrangeStatBarStat : refreshFrontAndBackWnd
+		return
+	#deffunc chOpt_front_showBackWires	//表面に裏面配線を表示するオプションの切り替え
+		if (opt_front_showBackWires@) {opt_front_showBackWires@=FALSE} else {opt_front_showBackWires@=TRUE}
+		drawGPCandRegion : refreshFrontAndBackWnd : arrangeMenuBarStat
+		return
+	#deffunc chOpt_back_showFrontWires	//裏面に表面配線を表示するオプションの切り替え
+		if (opt_back_showFrontWires@) {opt_back_showFrontWires@=FALSE} else {opt_back_showFrontWires@=TRUE}
+		drawGPCandRegion : refreshFrontAndBackWnd : arrangeMenuBarStat
+		return
+	#deffunc chOpt_back_mirror	//裏面の鏡像表示オプションの切り替え
+		if (opt_back_mirror@) {opt_back_mirror@=FALSE} else {opt_back_mirror@=TRUE} : arrangeMenuBarStat
+		if (flg_projLoaded@) {drawGPCandRegion : refreshFrontAndBackWnd}
+		return
+	#deffunc viewTopLeft	//ビューアの基点を基板左上に移動
+		xofst_viewGPC@=0 : yofst_viewGPC@=0 : refreshFrontAndBackWnd
+		return
+	#deffunc exportBMP int side_	//表面,裏面のBMP出力
+		//side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+		assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+		dialog "bmp", 17, "ビットマップ画像ファイル"
+		if (stat) {
+			path=refstr : if (getpath(path,2)=="") {path+=".bmp"}
+			if (side_==SIDE_FRONT) {
+				gsel WID_FRONTGPC
+			} else {
+				if (opt_back_mirror@) {
+					gsel WID_BACKGPC
+				} else {
+					buffer WID_GENERAL, sx_GPC@, sy_GPC@
+					xrect_src = 0, sx_GPC@, SX_GPC@, 0
+					yrect_src = 0, 0, sy_GPC@, sy_GPC@
+					xrect_dst = sx_GPC@, 0, 0, sx_GPC@
+					gsquare WID_BACKGPC, xrect_dst, yrect_src, xrect_src, yrect_src
+				}
+			}
+			bmpsave path
+		}
+		return
+	#deffunc chOpt_showCmtTags	//コメントタグ表示オプションの切り替え
+		if (opt_showCmtTags@) {opt_showCmtTags@=FALSE} else {opt_showCmtTags@=TRUE} : arrangeMenuBarStat
+		if (flg_projLoaded@) {drawGPCandRegion : refreshFrontAndBackWnd}
+		return
+	#deffunc openManual	//マニュアルを開く
+		exist dir_bin@+"\\manual.html" : if (strsize==-1) {gsel WID_MAIN : dialog "manual.html がありません",1,appName}
+		exec dir_bin@+"\\manual.html",16
+		return
+	#deffunc showAppVer	//バージョン情報表示
+		gsel WID_MAIN : dialog appName+"\nver "+APPVER_MAJOR+"."+APPVER_MINOR+"."+APPVER_REVISION+"\nauthor : "+authorName, 0, appName
+		return
+#global
+
+#module window_menuBar	//メニューバー操作
+	#deffunc enableMenuBar int sw_	//メニューバーの有効,無効切り替え
+		//sw_=(TRUE,FALSE)=(有効,無効)
+		assertEx (isTorF(sw_))
+		if (sw_) {SetMenu@ hwnd_main@,hMenu_root@} else {SetMenu@ hwnd_main@,NULL}
+		return
+	
+	#deffunc arrangeMenuBarStat	//メニュバーの状態を整理する
+		CheckMenuRadioItem hSubMenu_mag@, IDM_mag_1,IDM_mag_4, IDM_mag_1+magDisp@/2, MF_BYCOMMAND	//ウィンドウ
+		if (flg_projLoaded@) {	//プロジェクトが読み込まれているとき
+			EnableMenuItem hMenu_file@, IDM_saveas, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_prop, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_close, MF_ENABLED	//ファイル
+			EnableMenuItem hMenu_window@, IDM_viewTopLeft, MF_ENABLED	//ウィンドウ
+			EnableMenuItem hMenu_display@, IDM_showCmtTags, MF_ENABLED : if (opt_showCmtTags@) {CheckMenuItem hMenu_display@, IDM_showCmtTags, MF_CHECKED} else {CheckMenuItem hMenu_display@, IDM_showCmtTags, MF_UNCHECKED}	//表示
+			if (isReadOnlyCurProj) {	//読み取り専用
+				EnableMenuItem hMenu_file@, IDM_save, MF_GRAYED	//ファイル
+				/* 基板 */
+					repeat 2,0 : EnableMenuItem hMenu_board@, cnt, MF_GRAYED|MF_BYPOSITION : loop
+					repeat 2,2 : EnableMenuItem hMenu_board@, cnt, MF_ENABLED|MF_BYPOSITION : loop
+					EnableMenuItem hMenu_board@, IDM_mergeBoard, MF_GRAYED
+				EnableMenuItem hMenu_obj@, IDM_addPart, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_addCmtTag, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_GRAYED	//オブジェクト
+				EnableMenuItem hMenu_ope@, IDM_undo, MF_GRAYED : EnableMenuItem hMenu_ope@, IDM_redo, MF_GRAYED	//操作
+			} else {	//編集可
+				EnableMenuItem hMenu_file@, IDM_save, MF_ENABLED	//ファイル
+				/* 基板 */
+					repeat 3,1 : EnableMenuItem hMenu_board@, cnt, MF_ENABLED|MF_BYPOSITION : loop
+					if (opt_front_showBackWires@) {CheckMenuItem hSubMenu_front@, IDM_front_showBackWires, MF_CHECKED} else {CheckMenuItem hSubMenu_front@, IDM_front_showBackWires, MF_UNCHECKED}
+					if (opt_back_showFrontWires@) {CheckMenuItem hSubMenu_back@, IDM_back_showFrontWires, MF_CHECKED} else {CheckMenuItem hSubMenu_back@, IDM_back_showFrontWires, MF_UNCHECKED}
+					if (opt_back_mirror@) {CheckMenuItem hSubMenu_back@, IDM_back_mirror, MF_CHECKED} else {CheckMenuItem hSubMenu_back@, IDM_back_mirror, MF_UNCHECKED}
+				if (stat_edit@==ES_IDLE) {	//編集がアイドル状態なら
+					EnableMenuItem hMenu_file@, IDM_new, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_open, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_close, MF_ENABLED	//ファイル
+					EnableMenuItem hMenu_board@, IDM_chgNumHoles, MF_ENABLED : EnableMenuItem hMenu_board@, IDM_mergeBoard, MF_ENABLED	//基板
+					/* オブジェクト */
+						EnableMenuItem hMenu_obj@, IDM_addPart, MF_ENABLED : EnableMenuItem hMenu_obj@, IDM_addCmtTag, MF_ENABLED
+						if (numObjsCurProj>0) {EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_ENABLED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_ENABLED} else {EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_GRAYED}
+				} else {
+					EnableMenuItem hMenu_file@, IDM_new, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_open, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_close, MF_GRAYED	//ファイル
+					EnableMenuItem hMenu_board@, IDM_chgNumHoles, MF_GRAYED : EnableMenuItem hMenu_board@, IDM_mergeBoard, MF_GRAYED	//基板
+					EnableMenuItem hMenu_obj@, IDM_addPart, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_addCmtTag, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_GRAYED	//オブジェクト
+				}
+				if (COVER(ES_IDLE@|ES_UIBUSY, stat_edit@)) {
+					/* 操作 */
+						if (canUndo()) {EnableMenuItem hMenu_ope@, IDM_undo, MF_ENABLED} else {EnableMenuItem hMenu_ope@, IDM_undo, MF_GRAYED}
+						if (canRedo()) {EnableMenuItem hMenu_ope@, IDM_redo, MF_ENABLED} else {EnableMenuItem hMenu_ope@, IDM_redo, MF_GRAYED}
+				} else {
+					EnableMenuItem hMenu_ope@, IDM_undo, MF_GRAYED : EnableMenuItem hMenu_ope@, IDM_redo, MF_GRAYED	//操作
+				}
+			}
+		} else {
+			EnableMenuItem hMenu_file@, IDM_save, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_saveas, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_close, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_prop, MF_GRAYED	//ファイル
+			EnableMenuItem hMenu_window@, IDM_viewTopLeft, MF_GRAYED	//ウィンドウ
+			EnableMenuItem hMenu_board@, IDM_chgNumHoles, MF_GRAYED : repeat 3,1 : EnableMenuItem hMenu_board@, cnt, MF_GRAYED|MF_BYPOSITION : loop : EnableMenuItem hMenu_board@, IDM_mergeBoard, MF_GRAYED	//基板
+			EnableMenuItem hMenu_display@, IDM_showCmtTags, MF_GRAYED	//表示
+			EnableMenuItem hMenu_obj@, IDM_addPart, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_addCmtTag, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_GRAYED	//オブジェクト
+			EnableMenuItem hMenu_ope@, IDM_undo, MF_GRAYED : EnableMenuItem hMenu_ope@, IDM_redo, MF_GRAYED	//操作
+			if (stat_edit@==ES_IDLE) {	//アイドル状態の時
+				EnableMenuItem hMenu_file@, IDM_new, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_open, MF_ENABLED} else {EnableMenuItem hMenu_file@, IDM_new, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_open, MF_GRAYED	//ファイル
+			}
+		}
+		return
+#global
+
+#module window_statBar	//ステータスバー操作
+	#deffunc arrangeStatBarStat	//ステータスバーの状態を整理
+		sendmsg hStatBar@, SB_SETTEXT, IDSBPART_MAG, "表示倍率:"+magDisp@
+		if (flg_projLoaded@) {
+			if (flg_projModNotSaved@) {buf="未保存の変更:有"} else {buf="未保存の変更:無"} : sendmsg hStatBar@, SB_SETTEXT, IDSBPART_UNSAVEDMOD, buf
+			if (isReadOnlyCurProj) {buf="読取専用"} else {buf="編集可"} : sendmsg hStatBar@, SB_SETTEXT, IDSBPART_READONLY, buf
+		} else {sendmsg hStatBar@, SB_SETTEXT, IDSBPART_UNSAVEDMOD, "" : sendmsg hStatBar@, SB_SETTEXT, IDSBPART_READONLY, ""}
+		return
+#global
+
+#module window_lside	//左サイドウィンドウ操作
+	#deffunc openLsideWnd int sxc_	//左サイドウィンドウを指定された幅に展開する
+		assertEx ((sxc_>=MIN_SXC_LSIDE)&&(sxc_<=SX_LSIDE))
+		sxc_lside@=sxc_ : SetWindowPos hwnd_lside@, DONTCARE_INT, 0,0, sxc_lside@,syc_lside@, SWP_NOMOVE|SWP_NOZORDER : gosub *int_main_WM_SIZE@window_int
+		isLsideWindowOpen@=TRUE
+		return
+	#deffunc closeLsideWnd	//左サイドウィンドウを閉じる
+		sxc_lside@=MIN_SXC_LSIDE@ : SetWindowPos hwnd_lside@, DONTCARE_INT, DONTCARE_INT,DONTCARE_INT, sxc_lside@,syc_lside@, SWP_NOMOVE|SWP_NOZORDER : gosub *int_main_WM_SIZE@window_int
+		isLsideWindowOpen@=FALSE
+		return
+#global
+
+#module window_alignFrontAndBackWnds	//表面,裏面ウィンドウの整列処理
+	#deffunc alignBoardWnds_H	//表面,裏面ウィンドウを横に整列
+		sxFrame = GetSystemMetrics(SM_CXSIZEFRAME) : syFrame = GetSystemMetrics(SM_CYSIZEFRAME) : syTB = GetSystemMetrics(SM_CYCAPTION)	//枠の太さとタイトルバーの高さ
+		sxc_front@ = sxc_board@/2 - 2*sxFrame : syc_front@ = syc_board@ - 2*syFrame-syTB
+		sxc_back@ = sxc_front@ : syc_back@ = syc_front@
+		SetWindowPos hwnd_front@, DONTCARE_INT, 0,0, sxc_board@/2,syc_board@, SWP_NOZORDER
+		SetWindowPos hwnd_back@, DONTCARE_INT, sxc_board@/2,0, sxc_board@/2,syc_board@, SWP_NOZORDER
+		return
+	
+	#deffunc alignBoardWnds_V	//〃垂直
+		sxFrame = GetSystemMetrics(SM_CXSIZEFRAME) : syFrame = GetSystemMetrics(SM_CYSIZEFRAME) : syTB = GetSystemMetrics(SM_CYCAPTION)
+		sxc_front@ = sxc_board@ - 2*sxFrame : syc_front@ = syc_board@/2 - 2*syFrame-syTB
+		sxc_back@ = sxc_front@ : syc_back@ = syc_front@
+		SetWindowPos hwnd_front@, DONTCARE_INT, 0,0, sxc_board@,syc_board@/2, SWP_NOZORDER
+		SetWindowPos hwnd_back@, DONTCARE_INT, 0,syc_board@/2, sxc_board@,syc_board@/2, SWP_NOZORDER
+		return
+#global
+
+#module window_kbdShortCut
+	#deffunc kbdShortCut	//キーボードショートカット処理
+		hwnd_underMouse=WindowFromPoint(ginfo_mx,ginfo_my)
+		switch wparam
+			case 'A' : if ((flg_projLoaded@)&&(stat_edit@==ES_IDLE)) {int_saveProj} : swbreak	//名前をつけて保存
+			case 'H' : if ((hwnd_underMouse==hwnd_main@)|(hwnd_underMouse==hwnd_board@)|(hwnd_underMouse==hwnd_front@)|(hwnd_underMouse==hwnd_back@)) {alignBoardWnds_H} : swbreak	//表面,裏面ウィンドウを横に整列
+			case 'M' : chOpt_back_mirror : swbreak
+			case 'N' : if (stat_edit@==ES_IDLE) {int_createNewProj} : swbreak	//新規作成
+			case 'O' : if (stat_edit@==ES_IDLE) {int_openProj} : swbreak	//開く
+			case 'S'	//上書き保存
+				if ((flg_projLoaded@==FALSE)||(COVER(ES_IDLE|ES_UIBUSY, stat_edit@)==FALSE)) {return}
+				if (isReadOnlyCurProj) {gsel WID_MAIN : dialog "読み取り専用です。", 1, appName : return}
+				int_overwriteProj
+				swbreak
+			case 'V' : if ((hwnd_underMouse==hwnd_main@)|(hwnd_underMouse==hwnd_board@)|(hwnd_underMouse==hwnd_front@)|(hwnd_underMouse==hwnd_back@)) {alignBoardWnds_V} : swbreak	//表面,裏面ウィンドウを縦に整列
+			case 'Y'	//redo
+				if ((flg_projLoaded@==FALSE)||(COVER(ES_IDLE|ES_UIBUSY, stat_edit@)==FALSE)) {return}
+				if (isReadOnlyCurProj) {gsel WID_MAIN : dialog "読み取り専用です。", 1, appName : return}
+				int_redo
+				swbreak
+			case 'Z'	//undo
+				if ((flg_projLoaded@==FALSE)||(COVER(ES_IDLE|ES_UIBUSY, stat_edit@)==FALSE)) {return}
+				if (isReadOnlyCurProj) {gsel WID_MAIN : dialog "読み取り専用です。", 1, appName : return}
+				int_undo
+				swbreak
+		swend
+		return
+#global
+
+#module window_dd	//D&D処理
+	#deffunc int_wndBoard_openProj	//基板ウィンドウへのD&D割り込みの対応
+		hDrop=wparam
+		sdim path,256 : DragQueryFile hDrop, 0,path , 256 : DragFinish hDrop	//D&Dされたファイルのうち最初の一つのパスを得る
+		if (flg_projLoaded@) {
+			if (flg_projModNotSaved@) {
+				gsel WID_MAIN : dialog "未保存の変更があります。破棄しますか？",3,appName@
+				if (stat==7) {return}
+			}
+			unloadProj
+		}
+		pattern_UI_openProj path
+		return
+#global
+
+/*--------------------▼ タイマー割り込み ▼-------------------- */
+netexec@ : netgetv@	//とにかく書かなければ何故か認識しない
+#module timer_int
+	#deffunc local dummy
+		res = 0
+		return
+		
+	*int_mainWnd_WM_TIMER
+		switch wparam
+			case IDTIMER_CHKUPDATE:
+				netexec@ res
+				if (res != 0) {
+					trash = KillTimer@(hwnd_main@, IDTIMER_CHKUPDATE)
+					if (res == 1) {
+						html = "" : netgetv@ html
+						
+						#if 0 // (2020/4/28) 更新確認用ファイルをGithubに設置。処理を簡素化。
+						s = "<div class=\"invisible\">latest-version="
+						l = strlen(s)
+						a = instr(html, 0, s)
+						if (a == -1) {
+							dialog "更新情報の取得に失敗しました。\n恐らく作者がWebページの記述をミスっています。\n本アプリは引き続きご使用になれますが、作者に不具合を知らせてくださると助かります。\nWebページにてコメント投稿しますか？", 3, "エラー"
+							if (stat == 6) {exec "http://motchy99.blog.fc2.com/blog-entry-73.html", 16}
+							return
+						}
+						b = instr(html, a, "</div>")
+						LATEST_VER_STR = strmid(html, a+l, b-l)
+						buf = "" : split LATEST_VER_STR, ".", buf : LATEST_VER = serializeVer(int(buf(0)),int(buf(1)),int(buf(2)))
+						#else
+						buf = "" : split html, ".", buf : LATEST_VER = serializeVer(int(buf(0)),int(buf(1)),int(buf(2)))
+						#endif
+						
+						if (LATEST_VER > APPVER) {
+							if (IsWindowVisible(hwnd_splash@)) {gsel WID_SPLASH} else {gsel WID_MAIN}
+							dialog "より新しいバージョンが利用できます。\nダウンロードページを開きますか？\n\n使用中 : ver " + APPVER_STR@ + "\n最新版 : ver " + html, 2, "marmelo の更新"
+							if (stat == 6) {exec "https://github.com/motchy869/marmelo", 16}
+						}
+					}
+				}
+		swend
+		return
+#global
+/*---------------------------------------------------------------*/
+
+/*--------------------▼ キーボード,マウス割り込み ▼-------------------- */
+#module window_int
+	/* 未初期化変数警告回避 */
+		MINMAXINFO_MAIN=0 : key_ctrl=0 : xhcv=0 : yhcv=0 : xb=0 : yb=0 : xbnh=0 : ybnh=0
+
+	#deffunc local dummy
+		return
+	
+	*int_onkey
+		getkey key_ctrl,17 : if (key_ctrl) {kbdShortCut : return}	//ctrlが押されている場合はここで処理する
+		/* ctrlが押されていない場合はカードル直下のウィンドウに投げる */
+			hwnd_underMouse=WindowFromPoint(ginfo_mx,ginfo_my)
+			switch hwnd_underMouse
+				case hwnd_front@ : gosub *int_front_WM_KEYDOWN@window_int : swbreak
+				case hwnd_back@ : gosub *int_back_WM_KEYDOWN@window_int : swbreak
+			swend
+		return
+	
+	*int_main_WM_KEYDOWN
+		getkey key_ctrl,17 : if (key_ctrl) {kbdShortCut}
+		return
+	
+	*int_main_WM_SIZE
+		gsel WID_MAIN : sxc_main@=ginfo_winx : syc_main@=ginfo_winy
+		syc_lside@=syc_main@-sy_statBar@ : SetWindowPos hwnd_lside@, DONTCARE_INT, DONTCARE_INT,DONTCARE_INT, sxc_lside@,syc_lside@, SWP_NOMOVE|SWP_NOZORDER	//左サイドウィンドウのリサイズ
+		sxc_board@=sxc_main@-sxc_lside@ : syc_board@=syc_main@-sy_statBar@ : SetWindowPos hwnd_board@, DONTCARE_INT, sxc_lside@,0, sxc_board@,syc_board@, SWP_NOZORDER	//基板ウィンドウのリサイズ
+		sendmsg hStatBar@, WM_SIZE, SIZE_RESTORED, sxc_main@|sy_statBar@<<16	//ステータスバー
+		return
+	
+	*int_main_WM_GETMINMAXINFO	//ウィンドウサイズ制限
+		dupptr MINMAXINFO_MAIN, lparam, 4*2*5,4
+		MINMAXINFO_MAIN(6)=MIN_SXC_MAIN,MIN_SYC_MAIN, SX_MAIN@,SY_MAIN@
+		return
+	
+	*int_main_WM_COMMAND
+		if (lparam==0) {	//メニューバー
+			switch LOWORD(wparam)
+				/* ファイル */
+					case IDM_new : int_createNewProj : swbreak
+					case IDM_open : int_openProj : swbreak
+					case IDM_saveas : int_saveProj : swbreak
+					case IDM_save	: int_overwriteProj : swbreak
+					case IDM_close : int_unloadProj : swbreak
+					case IDM_prop : int_setProjProp : swbreak
+					case IDM_quit : gosub *confirmQuit@ : swbreak
+				/* ウィンドウ */
+					case IDM_viewTopLeft : viewTopLeft : swbreak
+					case IDM_alignH : alignBoardWnds_H : swbreak
+					case IDM_alignV : alignBoardWnds_V : swbreak
+				/* 基板 */
+					case IDM_chgNumHoles : int_chnumholes : return
+					case IDM_rotateCircuitryP90 : int_rotateCircuitry RotCkt_P90 : swbreak
+					case IDM_rotateCircuitryM90 : int_rotateCircuitry RotCkt_M90 : swbreak
+					case IDM_front_showBackWires : chOpt_front_showBackWires : swbreak
+					case IDM_front_exportBMP : exportBMP SIDE_FRONT : swbreak
+					case IDM_back_showFrontWires : chOpt_back_showFrontWires : swbreak
+					case IDM_back_mirror : chOpt_back_mirror : swbreak
+					case IDM_back_exportBMP : exportBMP SIDE_BACK : swbreak
+					case IDM_mergeBoard : int_mergeBoard : swbreak
+				/* 表示 */
+					case IDM_showCmtTags : chOpt_showCmtTags : swbreak
+				/* オブジェクト */
+					case IDM_addPart : int_addPart : swbreak
+					case IDM_addCmtTag : int_addCmtTag : swbreak
+					case IDM_slideObjs : int_slideObjs : swbreak
+					case IDM_autoAnn : int_autoAnn : swbreak
+				/* 操作 */
+					case IDM_undo : int_undo : swbreak
+					case IDM_redo : int_redo : swbreak
+				/* ヘルプ */
+					case IDM_openManual : openManual : swbreak
+					case IDM_ver : showAppVer : swbreak
+				default
+					idm=LOWORD(wparam)
+					/* ウィンドウ */
+						if ((idm>=IDM_mag_1)&&(idm<=IDM_mag_4)) {
+							centerHoleInView SIDE_FRONT, xhcv,yhcv
+							chMag int(powf(2,(idm-IDM_mag_1))), xhcv,yhcv
+							swbreak
+						}
+			swend
+		}
+		return
+	
+	*int_board_WM_KEYDOWN
+		getkey key_ctrl,17 : if (key_ctrl) {kbdShortCut : return}
+		return
+	*int_wndBoard_WM_DROPFILES
+		int_wndBoard_openProj
+		return
+	
+	*int_front_WM_MOUSEMOVE
+		if (flg_projLoaded@) {int_front_mousemove@edit_common}
+		return
+	
+	*int_back_WM_MOUSEMOVE
+		if (flg_projLoaded@) {int_back_mousemove@edit_common}
+		return
+	
+	*int_front_WM_MOUSEWHEEL
+		if (HIWORD(wparam)>0) {tmp=limit(magDisp@*2,1,MAX_MAGDISP)} else {tmp=limit(magDisp@/2,1,MAX_MAGDISP)}
+		/* 倍率変更 */
+			xyc=ginfo_mx,ginfo_my : ScreenToClient hwnd_front@, xyc : client2Board SIDE_FRONT, xyc(0),xyc(1), xb,yb, xbnh,ybnh
+			chMag tmp, limit(xb,0,numHole_xCurProj-1), limit(yb,0,numHole_yCurProj-1)
+		return
+	
+	*int_back_WM_MOUSEWHEEL
+		if (HIWORD(wparam)>0) {tmp=limit(magDisp@*2,1,MAX_MAGDISP)} else {tmp=limit(magDisp@/2,1,MAX_MAGDISP)}
+		/* 倍率変更 */
+			xyc=ginfo_mx,ginfo_my : ScreenToClient hwnd_back@, xyc : client2Board SIDE_BACK, xyc(0),xyc(1), xb,yb, xbnh,ybnh
+			chMag tmp, limit(xb,0,numHole_xCurProj-1), limit(yb,0,numHole_yCurProj-1)
+		return
+	
+	*int_front_WM_LBUTTONDOWN
+		SetWindowPos hwnd_front@,HWND_TOP, 0,0,0,0, SWP_NOMOVE|SWP_NOSIZE	//表面ウィンドウを裏面より前にもってくる
+		if (flg_projLoaded@) {int_front_lbtndown@edit_common}
+		return
+	*int_back_WM_LBUTTONDOWN
+		SetWindowPos hwnd_back@,HWND_TOP, 0,0,0,0, SWP_NOMOVE|SWP_NOSIZE
+		if (flg_projLoaded@) {int_back_lbtndown@edit_common}
+		return
+	*int_front_WM_LBUTTONUP
+		if (flg_projLoaded@) {int_front_lbtnup@edit_common}
+		return
+	*int_back_WM_LBUTTONUP
+		if (flg_projLoaded@) {int_back_lbtnup@edit_common}
+		return
+	*int_front_WM_RBUTTONDOWN
+		if (flg_projLoaded@) {ind_front_rbtndown@edit_common}
+		return
+	*int_back_WM_RBUTTONDOWN
+		if (flg_projLoaded@) {int_back_rbtndown@edit_common}
+		return
+	*int_front_WM_RBUTTONUP
+		if (flg_ignoreNextWM_RBUTTONUP@) {flg_ignoreNextWM_RBUTTONUP@=FALSE : return}
+		if (flg_projLoaded@) {int_front_rbtnup@edit_common}
+		return
+	*int_back_WM_RBUTTONUP
+		if (flg_ignoreNextWM_RBUTTONUP@) {flg_ignoreNextWM_RBUTTONUP@=FALSE : return}
+		if (flg_projLoaded@) {int_back_rbtnup@edit_common}
+		return
+	
+	*int_front_WM_KEYDOWN
+		getkey key_ctrl,17 : if (key_ctrl) {kbdShortCut : return}
+		if (flg_projLoaded@) {int_front_keydown@edit_common}
+		return
+	
+	*int_back_WM_KEYDOWN
+		getkey key_ctrl,17 : if (key_ctrl) {kbdShortCut : return}
+		if (flg_projLoaded@) {int_back_keydown@edit_common}
+		return
+	
+	*int_front_WM_NCLBUTTONDOWN
+		SetWindowPos hwnd_front@,HWND_TOP, 0,0,0,0, SWP_NOMOVE|SWP_NOSIZE
+		return
+	*int_back_WM_NCLBUTTONDOWN
+		SetWindowPos hwnd_back@,HWND_TOP, 0,0,0,0, SWP_NOMOVE|SWP_NOSIZE
+		return
+	
+	*int_front_WM_SIZE
+		gsel WID_FRONT : sxc_front@=ginfo_winx : syc_front@=ginfo_winy : refreshFrontAndBackWnd
+		sendmsg hStatBar_front@, WM_SIZE, SIZE_RESTORED, sxc_front@|sy_statBar@<<16
+		return
+	
+	*int_back_WM_SIZE
+		gsel WID_BACK : sxc_back@=ginfo_winx : syc_back@=ginfo_winy : refreshFrontAndBackWnd
+		sendmsg hStatBar_back@, WM_SIZE, SIZE_RESTORED, sxc_back@|sy_statBar@<<16
+		return
+
+	//左サイドウィンドウの子ウィンドウへのキー押し下げ割り込みに対して ginfo_intid が正しい値(子ウィンドウのID)を返すようにする
+	*int_wnd_lside
+		return
+	*int_wndNew
+		return
+	*int_wndSetProp
+		return
+	*int_wndChgHoleNum
+		return
+	*int_wndSlideObjs
+		return
+	*int_wndAutoAnn
+		return
+	*int_wndAddCmtTag
+		return
+	*int_wndAddComment
+		return
+	*int_wndChgWireColor
+		return
+	*int_wndMergeBoard
+		return
+#global
+/*------------------------------------------------------------------------*/

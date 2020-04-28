@@ -1,0 +1,489 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+<meta content="ja" http-equiv="Content-Language" />
+<title>マニュアル</title>
+<style type="text/css">
+a {
+	color: #00FFFF;
+}
+a:visited {
+	color: #993366;
+}
+.auto-style1 {
+	text-align: center;
+	font-size: xx-large;
+}
+.auto-style2 {
+	margin-right: 0px;
+}
+.auto-style3 {
+	border-collapse: collapse;
+	border-style: solid;
+	border-width: 1px;
+	margin-left: 40px;
+}
+.auto-style4 {
+	font-size: large;
+}
+.auto-style5 {
+	border: 1px solid #FFFFFF;
+}
+.auto-style6 {
+	text-align: center;
+	border: 1px solid #FFFFFF;
+}
+.auto-style7 {
+	font-size: medium;
+	margin-left: 40px;
+}
+.auto-style8 {
+	font-size: large;
+	margin-left: 40px;
+}
+.auto-style10 {
+	font-size: medium;
+}
+.auto-style11 {
+	font-size: medium;
+	text-align: center;
+	border: 1px solid #FFFFFF;
+}
+.auto-style12 {
+	font-size: medium;
+	border: 1px solid #FFFFFF;
+}
+.auto-style13 {
+	margin-left: 80px;
+}
+.auto-style14 {
+	font-size: small;
+}
+.auto-style15 {
+	color: #FFB3B3;
+}
+.auto-style16 {
+	border-left: medium none #FFFFFF;
+	border-right: 1px solid #FFFFFF;
+	border-top: medium none #FFFFFF;
+	border-bottom: medium none #FFFFFF;
+	text-align: center;
+}
+.auto-style17 {
+	border-right-style: none;
+	border-right-width: medium;
+}
+.auto-style18 {
+	border-left: 1px solid #FFFFFF;
+	border-right: medium none #FFFFFF;
+	border-top: medium none #FFFFFF;
+	border-bottom: medium none #FFFFFF;
+}
+.auto-style19 {
+	border-left: 1px solid #FFFFFF;
+	border-right: 1px solid #FFFFFF;
+	border-top: medium none #FFFFFF;
+	border-bottom: medium none #FFFFFF;
+}
+.auto-style20 {
+	border-left: 1px solid #FFFFFF;
+	border-right: 1px solid #FFFFFF;
+	border-top: medium none #FFFFFF;
+	border-bottom: medium none #FFFFFF;
+	text-align: center;
+}
+</style>
+<meta content="marmero" name="keywords" />
+<meta content="marmeroのマニュアル" name="description" />
+</head>
+
+<body style="color: #FFFFFF; background-color: #000000">
+
+<p class="auto-style1">marmelo</p>
+<hr />
+<table class="auto-style2" style="width: 100%">
+	<tr>
+		<td style="width: 150px">【作者】</td>
+		<td colspan="4">motchy</td>
+	</tr>
+	<tr>
+		<td style="width: 150px">【バージョン】</td>
+		<td colspan="4">1.3.9</td>
+	</tr>
+	<tr>
+		<td style="width: 150px">【最終更新】</td>
+		<td colspan="4">2020/4/28</td>
+	</tr>
+	<tr>
+		<td style="width: 150px" class="auto-style17">【開発環境】</td>
+		<td class="auto-style16" style="width: 50px">言語</td>
+		<td class="auto-style19" style="width: 250px">Hot Soup Processor 3.5 beta 4</td>
+		<td class="auto-style20" style="width: 50px">OS</td>
+		<td class="auto-style18">Windows 10 Pro x64</td>
+	</tr>
+	<tr>
+		<td style="width: 150px">【動作推奨環境】</td>
+		<td colspan="4">近頃のWindows。Wineでも動く模様。</td>
+	</tr>
+	</table>
+<hr />
+<p class="auto-style4">一言説明</p>
+<p class="auto-style7">ユニバーサル基板用回路図エディタ</p>
+<hr />
+<p class="auto-style4">使い方</p>
+<p class="auto-style7">殆ど説明無しで直感的に使えるので、特に述べておくべきことの説明だけに留める。</p>
+<p class="auto-style7">&nbsp;</p>
+<p class="auto-style8">用語</p>
+<table class="auto-style3" style="width: 100%">
+	<tr>
+		<td class="auto-style6">オブジェクト</td>
+		<td class="auto-style5">部品, 配線, コメントタグの総称</td>
+	</tr>
+	<tr>
+		<td class="auto-style6">部品モデルファミリ</td>
+		<td class="auto-style5">部品モデルのグループ。R, C, L, IC等。</td>
+	</tr>
+	<tr>
+		<td class="auto-style6">裸線</td>
+		<td class="auto-style5">被覆のない電線。スズメッキ線を想定。</td>
+	</tr>
+	<tr>
+		<td class="auto-style6">被覆線</td>
+		<td class="auto-style5">被覆のある電線。耐熱電子ワイヤ等を想定。</td>
+	</tr>
+	<tr>
+		<td class="auto-style6">ドラッグ</td>
+		<td class="auto-style5">接続されている配線を引きずって移動</td>
+	</tr>
+	<tr>
+		<td class="auto-style6">移動</td>
+		<td class="auto-style5">接続されている配線を切り離して移動</td>
+	</tr>
+</table>
+<p class="auto-style8">&nbsp;</p>
+<p class="auto-style8">特筆すべき編集操作</p>
+<table class="auto-style3" style="width: 100%">
+	<tr>
+		<td class="auto-style11">基板のスクロール</td>
+		<td class="auto-style5">基板の上で左ボタン押し下げでスクロール開始、開放で終了。</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">部品の追加</td>
+		<td class="auto-style5">
+		<ul>
+			<li class="auto-style10">基板の上でA (&quot;Add&quot;)</li>
+			<li class="auto-style10">メニューバー → 「オブジェクト」 → 「部品の追加」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">部品を最前面に移動</td>
+		<td class="auto-style12">
+		<ul>
+			<li>部品の上でF (&quot;Foreground&quot;)</li>
+			<li>部品の上で右クリックメニュー → 「最前面に移動」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">オブジェクトのドラッグ</td>
+		<td class="auto-style12">
+		<ul>
+			<li>オブジェクトの上でG (&quot;Grab&quot;)</li>
+			<li>オブジェクトの上で右クリックメニュー → 「ドラッグ」</li>
+		</ul>
+		<p>ドラッグ中に右クリックでキャンセル</p>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">オブジェクトの移動</td>
+		<td class="auto-style12">
+		<ul>
+			<li>オブジェクトの上でM (&quot;Move&quot;)</li>
+			<li>オブジェクトの上で右クリックメニュー → 「移動」</li>
+		</ul>
+		<p>移動中に右クリックでキャンセル</p>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">ドラッグ/移動中のオブジェクトの+90°回転</td>
+		<td class="auto-style12">R ("Rotate")</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">ドラッグ/移動中の部品を最前面に移動</td>
+		<td class="auto-style12">F ("Foreground")</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">部品のコピー</td>
+		<td class="auto-style12">
+		<ul>
+			<li>部品の上でC (&quot;Copy&quot;)</li>
+			<li>部品の上で右クリックメニュー → 「コピー」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">裸配線開始</td>
+		<td class="auto-style12">
+		<ul>
+			<li>基板の上でW (&quot;Wire&quot;)</li>
+			<li>基板の上で右クリックメニュー → 「裸線開始」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">被覆線開始</td>
+		<td class="auto-style12">
+		<ul>
+			<li>基板の上でJ (&quot;Jumper&quot;)</li>
+			<li>基板の上で右クリックメニュー → 「被覆線(ジャンパ)開始」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">オブジェクトにコメント等追加</td>
+		<td class="auto-style12">
+		<ul>
+			<li>オブジェクトの上でV (&quot;Value&quot;)</li>
+			<li>オブジェクトの上で右クリックメニュー → 「コメント等追加」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">コメントタグの追加</td>
+		<td class="auto-style12">
+		<ul>
+			<li>基板の上でT (&quot;Tag&quot;)</li>
+			<li>メニューバー → 「オブジェクト」 → 「コメントタグを追加」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">範囲選択</td>
+		<td class="auto-style12">
+		<ul>
+			<li>Shift+左ボタン押し下げで両面選択開始</li>
+			<li>Shift+S+左ボタン押し下げで片面選択(カーソルの乗っている方)開始 (S : &quot;Side&quot;)</li>
+			<li>基板の上で右クリックメニュー → 「範囲選択」 → 「表面/裏面/両面」で開始</li>
+		</ul>
+		<p>左ボタン開放 or 左クリックで終了。選択中に右クリックでキャンセル。</p>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">オブジェクトの削除</td>
+		<td class="auto-style12">
+		<ul>
+			<li>オブジェクトの上でD (&quot;Delete&quot;)</li>
+			<li>オブジェクトの上で右クリックメニュー → 「削除」</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style11">単一路の削除<br />
+		<span class="auto-style14">(単一路 : 配線が繋がってできた枝分かれしない1本道)</span></td>
+		<td class="auto-style12">
+		<ul>
+			<li>配線の上で Shift+D (D : &quot;Delete&quot;)</li>
+			<li>配線の上で右クリックメニュー → 「単一路の削除」</li>
+		</ul>
+		</td>
+	</tr>
+</table>
+<p class="auto-style8">&nbsp;</p>
+<p class="auto-style8">特筆すべきUI操作</p>
+<ul>
+	<li>
+	<p class="auto-style7">
+	　基板の表面,裏面を表示する2枚のウィンドウがあるが、これらはマウス操作で移動することもできるし、自動で整列させることもできる。メニューバー → 
+	「ウィンドウ」 → 「整列(横)」,「整列(縦)」 で整列できる。また、<span class="auto-style15">Ctrl+H, 
+	Ctrl+V</span> によっても整列できる。</p>
+	</li>
+	<li>
+	<p class="auto-style7">表示倍率は x1, x2, x4 が利用できる。メニューバー → 「ウィンドウ」 → 「表示倍率」 或いは<span class="auto-style15">マウスホイール</span>で変更できる。</p>
+	</li>
+</ul>
+<p class="auto-style8">&nbsp;</p>
+<p class="auto-style8">特筆すべき機能</p>
+<ul class="auto-style13">
+	<li>
+	<p class="auto-style7">　表面に裏面の配線を基板を透かして薄く表示することができる。その逆も可能。切り替えはメニューバー → 
+	「表面」&nbsp; →&nbsp; 「裏配線を表示」 等で行う。</p>
+	</li>
+	<li>
+	<p class="auto-style7">　裏面については<span class="auto-style15">鏡像表示</span>できる。現実なら裏面は表面とは左右反対にしか見ることができないが、アプリではそれを左右反転して表示できる。ちょうど表面から裏面を透かして見るのと同じである。切り替えはメニューバー 
+	→ 「基板」 → 「裏面」 → 「鏡像」 、或いは Ctrl+M で行う(M : &quot;Mirror&quot;)。</p>
+	</li>
+	<li>
+	<p class="auto-style7">　オブジェクトにはユーザーが4つの任意の文字列を割当てることができる。その4つとは val1, val2, 
+	val3, comment である。電気的特性とは全く関係ない任意の文字列であり、部品の定数や型番, 注釈を記入することを想定している。</p>
+	</li>
+	<li>
+	<p class="auto-style7">「コメントタグ」と呼ばれる任意テキストをオブジェクトとして配置できる。このオブジェクトは自身の 
+	comment 要素を表示する。内容を書き換えるにはこのオブジェクトの comment を書き換えればよい。</p>
+	</li>
+</ul>
+<p class="auto-style7">&nbsp;</p>
+<p class="auto-style8">部品モデルの自作</p>
+<p class="auto-style7">　部品ライブラリの構造を理解すれば所望の部品モデルを自作できる。ライブラリは「ファミリ/モデル」の2階層で構成されている。libフォルダ直下のフォルダ群がファミリ群と対応する。本アプリはライブラリを特にデータベースファイルで管理しておらず、<span class="auto-style15">起動時</span>にlibフォルダの中身を読んでいる<span class="auto-style14">(故にライブラリ更新後は再起動が必要)</span>。</p>
+<p class="auto-style7">　部品ファミリフォルダ直下に「PMFinfo.json」があり、ファミリ情報の一部を保持している。例えば 
+lib/R/PMFinfo.json をテキストエディタで覗いて見るといい。コメントを付けてあるからすぐ理解できるだろう。</p>
+<p class="auto-style7">
+　部品ファミリフォルダ直下のフォルダ群が部品モデル群と対応する。モデルフォルダ内のファイル群がそのモデルを構成する。例えば lib/R/RD-10.16 
+や lib/IC/DIP8-300mil 
+のファイルを覗いてみるといい。data.txt はモデル情報の一部を保持する。コメントを付けてあるからそれを真似て新しい部品モデルを作ればいい。絵についてはピッチ間隔が<span class="auto-style15">11px周期</span>である(→ある穴から右に11px移動すれば右隣の穴に着く。他の方向も同じ。)からそれに合わせて絵を描いて「deg0.png」として保存する。RGB=0xFF00FF 
+は透明色として扱われる。絵を描くにあたって私がスケッチに使っている sketch.png が参考になると思う。</p>
+<p class="auto-style7">　自作した部品を他の人にも使ってもらいたい場合は、もちろん個人のホームページ等で公開すればよいが、後述の連絡先にメールを送ってくだされば<span class="auto-style15">アプリへの同梱にも対応</span>しようと思っている。実のところ私は電子工作初心者なので知らない部品もあるし、面倒くさくて筆が進まないところもある<span class="auto-style14">(コネクタとか面倒くさそう...)</span>。そういうわけで部品モデルの提供は大歓迎なのである。</p>
+<hr />
+<p class="auto-style4">サンプル</p>
+<p class="auto-style7">sample フォルダに回路図のサンプルが入っている。参考にして欲しい。</p>
+<hr />
+<p class="auto-style4">ライセンス</p>
+<p class="auto-style7">motchy が書いたソースコードと関連ファイルはMITライセンスに従います。詳細は 
+<a href="LICENSE.txt">LICENSE.txt</a> を見てください。<br />
+This software's source code and related files made by motchy are released under 
+the MIT license, see <a href="LICENSE.txt">LICENSE.txt</a>.</p>
+<p class="auto-style7">本プログラムが利用しているライブラリのライセンスについては <a href="AUTHORS.txt">
+AUTHORS.txt</a> を見てください。<br />
+For the licenses of the libraries used in this program, see
+<a href="AUTHORS.txt">AUTHORS.txt</a>.<br />
+</p>
+<hr />
+<p class="auto-style4">免責</p>
+<p class="auto-style7">本ソフトウェアにより生じる一切の損害の責任は負いかねます。</p>
+<hr />
+<p class="auto-style4">作者連絡先</p>
+<p class="auto-style7"><a href="mailto:motchy869@gmail.com?subject=marmeroについて">
+motchy869@gmail.com</a><br />
+<br />
+不具合等、お気付きの点がありましたらお気軽にご連絡ください。但し、対処する約束はできません。<br />
+アプリケーションの操作方法や不明な点についての質問も受け付けています。</p>
+<hr />
+<p class="auto-style4">謝辞</p>
+<p class="auto-style7">手軽で多機能なプログラミング言語 Hot Soup Processor 開発者に感謝申し上げます。</p>
+<hr />
+<p class="auto-style4">更新履歴</p>
+<table class="auto-style3" style="width: 100%">
+	<tr>
+		<td class="auto-style6" style="width: 100px">バージョン</td>
+		<td class="auto-style6" style="width: 100px">最終更新日</td>
+		<td class="auto-style6">更新内容</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.0.0</td>
+		<td class="auto-style6" style="width: 100px">2016/10/31</td>
+		<td class="auto-style5">初版公開</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.0.1</td>
+		<td class="auto-style6" style="width: 100px">2017/8/21</td>
+		<td class="auto-style5">テキストボックス等へ向けた Ctrl+V 
+		コマンドに対してウィンドウの整列(縦)が発動する不具合を修正</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.0.2</td>
+		<td class="auto-style6" style="width: 100px">2017/8/22</td>
+		<td class="auto-style5">配線が自動分割された時に分かれた片方の色が既定色に置き換わる不具合を修正</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.1.0</td>
+		<td class="auto-style6" style="width: 100px">2017/8/23</td>
+		<td class="auto-style5">配線の色指定画面でWindowsの色選択ダイアログを表示できるようにした</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.1.1</td>
+		<td class="auto-style6" style="width: 100px">2018/9/22</td>
+		<td class="auto-style5">表面に常に裏配線が描画される不具合を修正</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.2.0</td>
+		<td class="auto-style6" style="width: 100px">2018/9/25</td>
+		<td class="auto-style5">
+		<ul>
+			<li>配線の色変更画面の入力ボックスの値に前回値を使うよう変更</li>
+			<li>コメントタグ追加画面にてコンボボックスにおける「表・裏」選択と実際の選択が一致しないことがある不具合を修正</li>
+			<li>コメントタグ1つのみの移動では、移動可能な範囲を基板の隅ギリギリまで許すように変更した。</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.0</td>
+		<td class="auto-style6" style="width: 100px">2018/10/9</td>
+		<td class="auto-style5">
+		<ul>
+			<li>mbdファイルの形式をJSONに変更した。これにより、コメントに &lt; &gt; , \ 等の文字が使えるようになった。</li>
+			<li>更新確認機能を付けた</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.1</td>
+		<td class="auto-style6" style="width: 100px">2018/10/14</td>
+		<td class="auto-style5">
+		<ul>
+			<li>設定ファイルの形式をJSONに変更した</li>
+			<li>部品モデルの形式をJSONに変更した</li>
+			<li>起動時のライブラリ読み込みを効率化し、起動時間を短縮した。</li>
+			<li>起動時の部品ライブラリの読み込みでエラーになった場合の通知ダイアログがスプラッシュ画面の下に隠れてしまう不具合を修正</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.2</td>
+		<td class="auto-style6" style="width: 100px">2018/10/14</td>
+		<td class="auto-style5">
+		ワイヤをドラッグする際、動かないオブジェクトの足との間に連絡用の新しいワイヤを生成するタイミングで落ちる不具合を修正</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.3</td>
+		<td class="auto-style6" style="width: 100px">2018/12/4</td>
+		<td class="auto-style5">
+		<ul>
+			<li><span>ユユルン様より頂いた 「</span>基板用リレー N4100HS3」 のモデルを追加</li>
+			<li>モデルファイル data.json のコメントが誤っていたのを修正</li>
+		</ul>
+		</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.4</td>
+		<td class="auto-style6" style="width: 100px">2018/12/15</td>
+		<td class="auto-style5">
+		コメントタグを含む回路図ファイルを読み込む際にアノテーションが重複する不具合を修正</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.5</td>
+		<td class="auto-style6" style="width: 100px">2019/5/2</td>
+		<td class="auto-style5">
+		裏面のBMP出力が常に鏡像になってしまう不具合を修正</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.6</td>
+		<td class="auto-style6" style="width: 100px">2019/5/6</td>
+		<td class="auto-style5">
+		ArduinoNano, ESP8266, ICピッチ変換基板, OLED, ターミナルブロック, XHライトアングルコネクタ, 
+		抵抗アレイ　のモデルを追加　(匿名で提供して下さった方に感謝！)</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.7</td>
+		<td class="auto-style6" style="width: 100px">2019/5/7</td>
+		<td class="auto-style5">
+		起動中に落ちる不具合を修正 (更新確認機能の不具合修正で解決)</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.8</td>
+		<td class="auto-style6" style="width: 100px">2019/5/22</td>
+		<td class="auto-style5">
+		<span>ユユルン様より頂いた</span> TO-92 パッケージのトランジスタのモデルを追加</td>
+	</tr>
+	<tr>
+		<td class="auto-style6" style="width: 100px">1.3.9</td>
+		<td class="auto-style6" style="width: 100px">2020/4/28</td>
+		<td class="auto-style5">
+		部品追加画面でモデルファミリ &quot;ICsocket&quot; を開くと説明欄に文字化けした説明「ICャPット」が現れる不具合を修正</td>
+	</tr>
+</table>
+
+</body>
+
+</html>

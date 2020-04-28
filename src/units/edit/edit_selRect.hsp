@@ -1,0 +1,173 @@
+/*
+	範囲選択処理担当
+*/
+#module edit_selRect	//範囲選択の処理
+	xx=0 : yy=0 : rxLeads=0 : ryLeads=0 : numWiresDrgExtended=0 : listIdObjsWiresDrgExtended=0 : listFixedLeadsWiresDrgExtended=0	//未初期化変数警告回避
+	
+	#defcfunc local isSideSel int side_	//与えられた側が選択範囲に含まれるかどうか
+		//side : 側
+		assertEx (stat_edit@&ES_SELRECT)
+		return (((SideRectSel@&SIDE_RECT_SEL_FRONT)!=0)&&(side_==SIDE_FRONT))||(((SideRectSel@&SIDE_RECT_SEL_BACK)!=0)&&(side_==SIDE_BACK))
+	
+	#deffunc local calcTLAndBR	//選択範囲の左上と右下の計算
+		if (rectSel@(IDX_RECTSEL_xStart)<=rectSel@(IDX_RECTSEL_xEnd)) {rectSel@(IDX_RECTSEL_xTopLeft)=rectSel@(IDX_RECTSEL_xStart) : rectSel@(IDX_RECTSEL_xBottomRight)=rectSel@(IDX_RECTSEL_xEnd)} else {
+			rectSel@(IDX_RECTSEL_xTopLeft)=rectSel@(IDX_RECTSEL_xEnd) : rectSel@(IDX_RECTSEL_xBottomRight)=rectSel@(IDX_RECTSEL_xStart)
+		}
+		if (rectSel@(IDX_RECTSEL_yStart)<=rectSel@(IDX_RECTSEL_yEnd)) {rectSel@(IDX_RECTSEL_yTopLeft)=rectSel@(IDX_RECTSEL_yStart) : rectSel@(IDX_RECTSEL_yBottomRight)=rectSel@(IDX_RECTSEL_yEnd)} else {
+			rectSel@(IDX_RECTSEL_yTopLeft)=rectSel@(IDX_RECTSEL_yEnd) : rectSel@(IDX_RECTSEL_yBottomRight)=rectSel@(IDX_RECTSEL_yStart)
+		}
+		return
+	
+	#deffunc startSelRect double mxb_,double myb_, int sideRectSel_	//範囲選択開始
+		/*
+			mxb_,myb_	: マウスカーソルの基板座標(ピッチ単位)
+			sideRectSel_ : sideRectSel互換データ
+		*/
+		assertEx (sideRectSel_>=1)&&(sideRectSel_<=3)
+		SideRectSel@=sideRectSel_
+		flg_rectSelExist@=TRUE : rectSel@(IDX_RECTSEL_xStart)=limitf(mxb_, xTLBoardSurface,xBRBoardSurface),limitf(myb_, yTLBoardSurface,yBRBoardSurface) : rectSel@(IDX_RECTSEL_xEnd)=rectSel@(IDX_RECTSEL_xStart),rectSel@(IDX_RECTSEL_yStart) : calcTLAndBR
+		stat_edit@|=ES_SELRECT : arrangeMenuBarStat
+		return
+	
+	#deffunc updateRectSel double mxb_,double myb_	//選択範囲の更新
+		//mxb_,myb_	: マウスカーソルの基板座標(ピッチ単位)
+		assertEx (stat_edit@&ES_SELRECT)
+		rectSel@(IDX_RECTSEL_xEnd)=limitf(mxb_, xTLBoardSurface,xBRBoardSurface),limitf(myb_, yTLBoardSurface,yBRBoardSurface) : calcTLAndBR
+		drawGPCandRegion : refreshFrontAndBackWnd
+		return
+	
+	#defcfunc local isPointBounded double xb_,double yb_	//点が選択範囲に入っているかどうか
+		//xb_,yb_ : 調べたい点の基板上での座標(ピッチ単位)
+		assertEx (stat_edit@&ES_SELRECT)
+		if ((xb_>=rectSel@(IDX_RECTSEL_xTopLeft))&&(xb_<=rectSel@(IDX_RECTSEL_xBottomRight))&&(yb_>=rectSel@(IDX_RECTSEL_yTopLeft))&&(yb_<=rectSel@(IDX_RECTSEL_yBottomRight))) {return TRUE}
+		return FALSE
+	
+	#defcfunc local isObjBounded int idObj_	//与えられたオブジェクトが選択範囲に包まれているかどうか
+		/*
+			[判断基準]
+				部品,配線 : 全ての足が選択範囲に入っている
+				コメントタグ : 一部が選択範囲に入っている
+				全般 : 選択されている側に属している
+		*/
+		assertEx (stat_edit@&ES_SELRECT)
+		assertEx existObj(idObj_)
+		objtype=getObjtype@OBJ(OBJs@(idObj_))
+		switch objtype
+			case OBJTYPE_PART
+				if ((SideRectSel@&SIDE_RECT_SEL_FRONT)==0) {return FALSE}
+				idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj_)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj_))
+				deg_rad=deg2rad(getDeg@OBJ(OBJs@(idObj_))) : getxxyy@OBJ OBJs@(idObj_), xx,yy
+				numLeads=getNumLeads@PMFDat(PMFDats@(idPMFDat),idPMDat) : dupRxyLeads@PMFDat PMFDats@(idPMFDat),idPMDat, rxLeads,ryLeads
+				if (isPointBounded(xx,yy)==FALSE) {return FALSE}	//1番ピン
+				flg_protrude=FALSE
+				repeat numLeads-1	//2番目以降のピン
+					x=xx+round(cos(deg_rad)*rxLeads(cnt) - sin(deg_rad)*ryLeads(cnt)) : y=yy+round(sin(deg_rad)*rxLeads(cnt) + cos(deg_rad)*ryLeads(cnt))
+					if (isPointBounded(x,y)==FALSE) {flg_protrude=TRUE : break}
+				loop
+				if (flg_protrude) {return FALSE} else {return TRUE}
+			swbreak
+			case OBJTYPE_WIRE
+				getxxyy@OBJ OBJs@(idObj_), xx,yy
+				side=getSide@OBJ(OBJs@(idObj_)) : if (isSideSel(side)==FALSE) {return FALSE}
+				if ((isPointBounded(xx(0),yy(0)))&&(isPointBounded(xx(1),yy(1)))) {return TRUE} else {return FALSE}
+			swbreak
+			case OBJTYPE_CMTTAG
+				if (opt_showCmtTags@==FALSE) {return FALSE}
+				side=getSide@OBJ(OBJs@(idObj_)) : if (isSideSel(side)==FALSE) {return FALSE}
+				#define x1	rectSel@(IDX_RECTSEL_xTopLeft)
+				#define y1	rectSel@(IDX_RECTSEL_yTopLeft)
+				#define w1	rectSel@(IDX_RECTSEL_xBottomRight) - rectSel@(IDX_RECTSEL_xTopLeft)
+				#define h1	rectSel@(IDX_RECTSEL_yBottomRight) - rectSel@(IDX_RECTSEL_yTopLeft)
+				#define x2	getxx_dbl@OBJ(OBJs@(idObj_))
+				#define y2	getyy_dbl@OBJ(OBJs@(idObj_))
+				w2=0.0 : h2=0.0 : getsxsy@OBJ OBJs@(idObj_), w2,h2
+				if is2RectOverlapped(x1,y1, w1,h1, x2,y2, w2,h2) {return TRUE} else {return FALSE}
+				#undef x1
+				#undef y1
+				#undef w1
+				#undef h1
+				#undef x2
+				#undef y2
+			swbreak
+		swend
+		return TRUE
+	
+	#deffunc local startDrag int opt_, double mxb_,double myb_	//選択範囲内のオブジェクトのドラッグを開始
+		//mxb_,myb_	: マウスカーソルの基板座標(ピッチ単位)
+		#enum OPT_STARTDRG_DRG=0
+		#enum OPT_STARTDRG_MOV
+		#enum OPT_STARTDRG_CPY
+		assertEx ((opt_>=OPT_STARTDRG_DRG)&&(opt_<=OPT_STARTDRG_CPY))
+		if (numObjsCurProj==0) {return}
+		pushCurProjToUndoStack
+		cntObjs=0 : foreach OBJs@ : listIdObjs(cntObjs)=cnt : cntObjs++ : loop	//コピーする可能性もあって後でforeachが使えないので現存するオブジェクトのみ事前に列挙しておく
+		assertEx (cntObjs==numObjsCurProj)
+		numPartsDrg=0 : numWiresDrgConfirmed=0 : numCmtTagsDrg=0
+		repeat numObjsCurProj
+			idObj=listIdObjs(cnt)
+			objtype=getObjtype@OBJ(OBJs@(idObj))
+			switch objtype
+				case OBJTYPE_PART
+					if (isObjBounded(idObj)==FALSE) {continue}
+					if ((opt_==OPT_STARTDRG_DRG)||(opt_==OPT_STARTDRG_MOV)) {listIdObjsPartsDrg(numPartsDrg)=idObj	//ドラッグまたは移動の場合
+					} else {copyObj idObj : listIdObjsPartsDrg(numPartsDrg)=stat}	//コピーの場合
+					numPartsDrg++
+				swbreak
+				case OBJTYPE_WIRE
+					side=getSide@OBJ(OBJs@(idObj)) : if (isSideSel(side)==FALSE) {continue}
+					getxxyy@OBJ OBJs@(idObj), xx,yy
+					if ((opt_==OPT_STARTDRG_DRG)||(opt_==OPT_STARTDRG_MOV)) {	//ドラッグまたは移動の場合
+						tmp=0 : if (isPointBounded(xx(0),yy(0))==FALSE) {tmp+=1} : if (isPointBounded(xx(1),yy(1))==FALSE) {tmp+=2}
+						if (tmp==3) {continue}
+						listIdObjsWiresDrgConfirmed(numWiresDrgConfirmed)=idObj : listFixedLeadsWiresDrgConfirmed(numWiresDrgConfirmed)=tmp : numWiresDrgConfirmed++
+					} else {	//コピーの場合
+						if ((isPointBounded(xx(0),yy(0)))||(isPointBounded(xx(1),yy(1)))) {	//片足だけでも選択範囲に入っていればコピーする
+							copyObj idObj : listIdObjsWiresDrgConfirmed(numWiresDrgConfirmed)=idObj : listFixedLeadsWiresDrgConfirmed(numWiresDrgConfirmed)=0 : numWiresDrgConfirmed++
+						}
+					}
+				swbreak
+				case OBJTYPE_CMTTAG
+					if (opt_showCmtTags@==FALSE) {continue}
+					if (isObjBounded(idObj)==FALSE) {continue}
+					listIDObjsCmtTagsDrg(numCmtTagsDrg)=idObj : numCmtTagsDrg++
+				swbreak
+			swend
+		loop
+		if (numPartsDrg + numWiresDrgConfirmed + numCmtTagsDrg==0) {DeleteTopElementInUndoStack : return}
+		if (opt_==OPT_STARTDRG_DRG) {	//追従配線を追加
+			getFollowWires@edit_drag numPartsDrg, listIdObjsPartsDrg, numWiresDrgConfirmed, listIdObjsWiresDrgConfirmed, listFixedLeadsWiresDrgConfirmed, numWiresDrgExtended, listIdObjsWiresDrgExtended, listFixedLeadsWiresDrgExtended
+			numWiresDrgConfirmed=numWiresDrgExtended : repeat numWiresDrgExtended : listIdObjsWiresDrgConfirmed(cnt)=listIdObjsWiresDrgExtended(cnt) : listFixedLeadsWiresDrgConfirmed(cnt)=listFixedLeadsWiresDrgExtended(cnt) : loop
+		}
+		startDrag@edit_drag numPartsDrg, listIdObjsPartsDrg, numWiresDrgConfirmed, listIdObjsWiresDrgConfirmed, listFixedLeadsWiresDrgConfirmed, numCmtTagsDrg, listIDObjsCmtTagsDrg, mxb_,myb_
+		return
+		
+	#deffunc local delObjs	//選択範囲内のオブジェクトを削除
+		assertEx (stat_edit@&ES_SELRECT)
+		if (numObjsCurProj==0) {return}
+		pushCurProjToUndoStack : cntDel=0
+		foreach OBJs@
+			if (isObjBounded(cnt)==FALSE) {continue}
+			deleteObj@proj_delObj cnt : cntDel++
+		loop
+		if (cntDel) {clearRedoStack : flg_projModNotSaved@=TRUE : drawGPCandRegion : refreshFrontAndBackWnd} else {DeleteTopElementInUndoStack}
+		return
+	
+	#deffunc canselSelRect	//範囲選択中止
+		assertEx (stat_edit@&ES_SELRECT)
+		flg_rectSelExist@=FALSE : stat_edit@&=BITINV(ES_SELRECT) : arrangeMenuBarStat : drawGPCandRegion : refreshFrontAndBackWnd
+		return
+	
+	#deffunc endSelRect double mxb_,double myb_	//範囲選択終了
+		assertEx (stat_edit@&ES_SELRECT)
+		TrackPopupMenu hMenuRS@, TPM_LEFTALIGN|TPM_TOPALIGN|TPM_RETURNCMD|TPM_LEFTBUTTON, ginfo_mx,ginfo_my, 0, hwnd_main@, DONTCARE_INT : idm=stat
+		switch idm
+			case 0 : swbreak
+			case IDMRS_DRAG : startDrag OPT_STARTDRG_DRG, mxb_,myb_ : swbreak
+			case IDMRS_MOVE : startDrag OPT_STARTDRG_MOV, mxb_,myb_ : swbreak
+			case IDMRS_COPY : startDrag OPT_STARTDRG_CPY, mxb_,myb_ : swbreak
+			case IDMRS_DEL : delObjs : swbreak
+		swend
+		flg_rectSelExist@=FALSE : stat_edit@&=BITINV(ES_SELRECT) : arrangeMenuBarStat
+		drawGPCandRegion : refreshFrontAndBackWnd
+		return
+#global

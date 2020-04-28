@@ -1,0 +1,7 @@
+{
+	"explanation":	"DIPロータリースイッチ。10ステップ",
+	"numLeads":	6,
+	"rxLeads":	[1, 2, 2, 1, 0],
+	"ryLeads":	[0, 0, -3, -3, -3],
+	"posLeadInImg":	[5, 37]
+}

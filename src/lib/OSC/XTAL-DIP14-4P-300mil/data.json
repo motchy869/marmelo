@@ -1,0 +1,7 @@
+{
+	"explanation":	"水晶発振器。DIP14パッケージ。4ピン。300mil幅。",
+	"numLeads":	4,
+	"rxLeads":	[6, 6, 0],
+	"ryLeads":	[0, -3, -3],
+	"posLeadInImg":	[4, 37]
+}

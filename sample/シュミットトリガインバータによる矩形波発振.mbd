@@ -1,0 +1,379 @@
+{
+	"fileInfo":	{
+		"appName":	"marmelo",
+		"mbdVer":	"2.0.0"
+	},
+	"proj":	{
+		"properties":	{
+			"author":	"motchy",
+			"title":	"シュミットトリガインバータによる矩形波発振回路",
+			"subtitle":	"",
+			"explanation":	"シュミットトリガインバータ 74HC14 を使った矩形波発振回路。\r\n\r\n↓のページを参考にしたもの。\r\nhttp://bbradio.sakura.ne.jp/7414/7414.html\r\n",
+			"read-only":	false
+		},
+		"statistics":	{
+			"numHole":	[20, 10],
+			"numParts":	6,
+			"numWires":	31,
+			"numCmtTags":	2
+		},
+		"options":	{
+			"showBackWiresOnFrontWindow":	true,
+			"showFrontWiresOnBackWindow":	true,
+			"mirrorModeOnBackWindow":	true,
+			"showCmtTags":	true
+		},
+		"parts":	[{
+				"namePMF":	"IC",
+				"namePmodel":	"DIP14-300mil",
+				"deg":	0,
+				"pos":	[6, 5],
+				"zOrder":	0,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x1",
+				"deg":	0,
+				"pos":	[14, 4],
+				"zOrder":	1,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x1",
+				"deg":	0,
+				"pos":	[5, 7],
+				"zOrder":	2,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RD-2.54",
+				"deg":	90,
+				"pos":	[7, 6],
+				"zOrder":	3,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"MLCC-2.54",
+				"deg":	0,
+				"pos":	[8, 7],
+				"zOrder":	4,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"MLCC-2.54",
+				"deg":	90,
+				"pos":	[13, 3],
+				"zOrder":	5,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"wires":	[{
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[6, 2],
+				"pos2":	[6, 1],
+				"color":	"0xFF",
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[6, 1],
+				"pos2":	[7, 1],
+				"color":	"0xFF",
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[13, 1],
+				"pos2":	[13, 3],
+				"color":	"0xFF",
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[13, 1],
+				"pos2":	[14, 1],
+				"color":	"0xFF",
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[14, 1],
+				"pos2":	[14, 3],
+				"color":	"0xFF",
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[7, 1],
+				"pos2":	[7, 2],
+				"color":	"0xFF",
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[7, 1],
+				"pos2":	[9, 1],
+				"color":	"0xFF",
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[9, 1],
+				"pos2":	[9, 2],
+				"color":	"0xFF",
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[9, 1],
+				"pos2":	[11, 1],
+				"color":	"0xFF",
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[11, 1],
+				"pos2":	[11, 2],
+				"color":	"0xFF",
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[11, 1],
+				"pos2":	[13, 1],
+				"color":	"0xFF",
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[12, 5],
+				"pos2":	[12, 6],
+				"color":	"0xFF",
+				"annotation":	11,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[12, 6],
+				"pos2":	[13, 6],
+				"color":	"0xFF",
+				"annotation":	12,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[13, 6],
+				"pos2":	[13, 4],
+				"color":	"0xFF",
+				"annotation":	13,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[14, 4],
+				"pos2":	[14, 6],
+				"color":	"0xFF",
+				"annotation":	14,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[14, 6],
+				"pos2":	[13, 6],
+				"color":	"0xFF",
+				"annotation":	15,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[7, 5],
+				"pos2":	[7, 6],
+				"color":	"0xFF",
+				"annotation":	16,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[7, 7],
+				"pos2":	[8, 7],
+				"color":	"0xFF",
+				"annotation":	17,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[8, 5],
+				"pos2":	[8, 6],
+				"color":	"0xFF",
+				"annotation":	18,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[8, 6],
+				"pos2":	[10, 6],
+				"color":	"0xFF",
+				"annotation":	19,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[10, 5],
+				"pos2":	[10, 6],
+				"color":	"0xFF",
+				"annotation":	20,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[10, 6],
+				"pos2":	[12, 6],
+				"color":	"0xFF",
+				"annotation":	21,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[9, 7],
+				"pos2":	[10, 7],
+				"color":	"0xFF",
+				"annotation":	22,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[10, 7],
+				"pos2":	[10, 6],
+				"color":	"0xFF",
+				"annotation":	23,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[8, 8],
+				"pos2":	[10, 8],
+				"color":	"0xFF",
+				"annotation":	24,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[8, 8],
+				"pos2":	[5, 8],
+				"color":	"0xFF",
+				"annotation":	25,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[5, 8],
+				"pos2":	[5, 7],
+				"color":	"0xFF",
+				"annotation":	26,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[6, 5],
+				"pos2":	[6, 7],
+				"color":	"0xFF",
+				"annotation":	27,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[6, 7],
+				"pos2":	[7, 7],
+				"color":	"0xFF",
+				"annotation":	28,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	true,
+				"pos":	[5, 6],
+				"pos2":	[7, 6],
+				"color":	"0x64FF64",
+				"annotation":	29,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[10, 8],
+				"pos2":	[10, 7],
+				"color":	"0xFF",
+				"annotation":	30,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"cmtTags":	[{
+				"side":	"front",
+				"xyb":	["14.6364", "2.54545"],
+				"bgColor":	"0xFFFFFF",
+				"chrColor":	"0x0",
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	"VDD\r\nGND"
+			}, {
+				"side":	"front",
+				"xyb":	["2.90909", "5.54545"],
+				"bgColor":	"0xFFFFFF",
+				"chrColor":	"0x0",
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	"OUT\r\nGND"
+			}]
+	}
+}

@@ -1,0 +1,7 @@
+{
+	"explanation":	"ダイオード。レジンモールド。10.16mmピッチ。",
+	"numLeads":	2,
+	"rxLeads":	[4],
+	"ryLeads":	[0],
+	"posLeadInImg":	[0, 4]
+}

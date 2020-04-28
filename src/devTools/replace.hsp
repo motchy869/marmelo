@@ -1,0 +1,13 @@
+buf="" : dirlist buf, "*.hsp", 1
+notesel buf : numFiles=notemax
+listFileName="" : repeat numFiles : noteget listFileName(cnt),cnt : loop
+
+text="" : notesel text
+repeat numFiles
+	if ((listFileName(cnt)=="macros.hsp")||(listFileName(cnt)=="replace.hsp")) {continue}
+	cntReplace=0
+	noteload listFileName(cnt)
+	strrep text, "assert ", "assertEx " : cntReplace+=stat
+	mes listFileName(cnt) + " : íuä∑ : "+cntReplace
+	notesave listFileName(cnt)
+loop

@@ -1,0 +1,98 @@
+/*
+	HOLE,LEAD定義
+*/
+#module LEAD idObj,idLead	//足モジュール変数。1本の足の情報を保持。
+	/*
+		idObj	: そのオブジェクトのID
+		idLead	: そのオブジェクトにおけるその足の番号(1,2,3,...)
+	*/
+	id=0
+	#modinit
+		mref id,2
+		return id
+	
+	#modfunc local initMembers int idObj_,int idLead_
+		assertEx (existObj(idObj_))
+		assertEx (idLead_>=1)
+		idObj=idObj_ : idLead=idLead_
+		return
+	
+	#modcfunc local getIdObj
+		return idObj
+	#modcfunc local getIdLead
+		return idLead
+#global
+
+#module HOLE numLeads,numParts,numFrontWires,numBackWires,LEADs	//穴モジュール変数。1つの穴の情報を保持。
+	/*
+		numLeads		: 挿さっている足の数
+		numParts		: 〃部品の数
+		numFrontWires	: 〃表配線の数
+		numBackWires	: 〃裏配線の数
+		LEADs			: LEADモジュール変数の配列。挿さっているオブジェクト
+	*/
+	id=0
+	#modinit
+		numLeads=0 : numParts=0 : numFrontWires=0 : numBackWires=0 : LEADs=0
+		mref id,2
+		return id
+	
+	#modcfunc local getNumLeads
+		return numLeads
+	#modcfunc local getNumParts
+		return numParts
+	#modcfunc local getNumFrontWires
+		return numFrontWires
+	#modcfunc local getNumBackWires
+		return numBackWires
+	
+	#modfunc local insert int idObj_,int idLead_	//足を挿す
+		/*
+			idObj_	: 挿すオブジェクトのID
+			idLead_	: そのオブジェクトにおけるその足の番号。
+	
+			[stat]
+				(0,1,2)=(正常,オブジェクトの二重登録,オブジェクト+足番号セットでの二重登録)
+		*/
+		assertEx (existObj(idObj_))
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART)||(getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		assertEx (idLead_>=1)
+		rc=0
+		if (numLeads>0) {	//二重登録チェック
+			foreach LEADs : if (getIdObj@LEAD(LEADs(cnt))==idObj_) {rc=1 : if (getIdLead@LEAD(LEADs(cnt))==idLead_) {rc=2} : break} : loop
+		}
+		newmod LEADs,LEAD : initMembers@LEAD LEADs(stat), idObj_,idLead_
+		if (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART) {numParts++} else {
+			if (getSide@OBJ(OBJs@(idObj_))==WIRESIDE_FRONT) {numFrontWires++} else {numBackWires++}
+		}
+		numLeads++
+		return rc
+	
+	#modfunc local pullout int idObj_, int idLead_	//足を抜く
+		/*
+			idObj_	: 抜くオブジェクトのID
+			idLead_	: そのオブジェクトにおけるその足の番号
+		*/
+		assertEx (existObj(idObj_))
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART)||(getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		idx=-1 : foreach LEADs : if((getIdObj@LEAD(LEADs(cnt))==idObj_)&&(getIdLead@LEAD(LEADs(cnt))==idLead_)) {idx=cnt : break} : loop : assertEx (idx!=-1)
+		delmod LEADs(idx)
+		if (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART) {numParts--} else {
+			if (getSide@OBJ(OBJs@(idObj_))==WIRESIDE_FRONT) {numFrontWires--} else {numBackWires--}
+		}
+		numLeads--
+		return
+	
+	#modfunc local enumLeads array listIdObjs_, array listIdLeads_	//挿さっている足を列挙
+		/*
+			listIdObjs_ : オブジェクトIDのリストの格納先(初期化不要)
+			listIdLeads_ : 足番号のリストの格納先(初期化不要)。要素の並びはlistIdObjs_と対応。
+			
+			[stat]
+				挿さっている足の数
+		*/
+		if (numLeads==0) {return 0}
+		dim listIdObjs_,numLeads : dim listIdLeads_,numLeads : cntLeads=0
+		foreach LEADs : listIdObjs_(cntLeads)=getIdObj@LEAD(LEADs(cnt)) : listIdLeads_(cntLeads)=getIdLead@LEAD(LEADs(cnt)) : cntLeads++ : loop
+		return numLeads
+#global

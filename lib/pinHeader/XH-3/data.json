@@ -1,0 +1,7 @@
+{
+	"explanation":	"XHライトアングルコネクタ。3ピン",
+	"numLeads":	3,
+	"rxLeads":	[1, 2],
+	"ryLeads":	[0, 0],
+	"posLeadInImg":	[9,0]
+}

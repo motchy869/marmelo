@@ -1,0 +1,7 @@
+{
+	"explanation":	"USB-micro-Bコネクタ。ホスト側",
+	"numLeads":	5,
+	"rxLeads":	[0, 0, 0, 0],
+	"ryLeads":	[-1, -2, -3, -4],
+	"posLeadInImg":	[4, 48]
+}

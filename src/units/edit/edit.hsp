@@ -1,0 +1,752 @@
+/*
+	編集担当
+	
+	主にマウスやキーボードによる編集
+*/
+#include "edit_selRect.hsp"
+#include "edit_drag.hsp"
+
+#module edit_common	//編集一般処理
+	dummy=0 : xv=0 : yv=0 : mxb=0 : myb=0 : mxbnh=0 : mybnh=0 : vals="" : keys=0 : xx=0 : yy=0 : numWiresDrgExtended=0 : listIdObjsWiresDrgExtended=0 : listFixedLeadsWiresDrgExtended=0	//未初期化変数警告回避
+	
+	#deffunc local getKeys array keys_	//よく使うキーのON/OFFをまとめて調べる
+		#enum idKey_SHIFT=0
+		#enum idKey_ESC
+		#enum idKey_A
+		#enum idKey_C
+		#enum idKey_D
+		#enum idKey_F
+		#enum idKey_G
+		#enum idKey_J
+		#enum idKey_M
+		#enum idKey_R
+		#enum idKey_S
+		#enum idKey_T
+		#enum idKey_V
+		#enum idKey_W
+		#enum idKey_dummy
+		dim keys_,idKey_dummy
+		getkey keys_(idKey_SHIFT),16 : getkey keys_(idKey_ESC),27
+		getkey keys_(idKey_A),65 : getkey keys_(idKey_C),67 : getkey keys_(idKey_D),68 : getkey keys_(idKey_G),71 : getkey keys_(idKey_F),70 : getkey keys_(idKey_J),74
+		getkey keys_(idKey_M),77 : getkey keys_(idKey_R),82 : getkey keys_(idKey_S),83 : getkey keys_(idKey_T),84 : getkey keys_(idKey_V),86 : getkey keys_(idKey_W),87
+		return
+	
+	#deffunc local bringPartToFront int idObj_	//部品を最前面に移動
+		assertEx existObj(idObj_) : assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART)
+		udrd_progress : bringPartToFront@proj_zOrder idObj_ : flg_projModNotSaved@=TRUE
+		drawGPCandRegion : refreshFrontAndBackWnd : arrangeMenuBarStat : arrangeStatBarStat
+		return
+	
+	#deffunc local startDrag int idObj_, int flg_move_, double mxb_,double myb_	//オブジェクトのドラッグ開始
+		/*
+			idObj_ : ドラッグするオブジェクトのID
+			flg_move_ : 移動モードフラグ
+			mxb_,myb_ : マウスカーソルの基板上での座標(ピッチ単位)(double)
+		*/
+		assertEx existObj(idObj_)
+		pushCurProjToUndoStack
+		objtype=getObjtype@OBJ(OBJs@(idObj_))
+		switch objtype
+			case OBJTYPE_PART
+				numPartsDrg=1 : listIdObjsPartsDrg=idObj_ : numWiresDrgConfirmed=0 : listIdObjsWiresDrgConfirmed=0 : listFixedLeadsWiresDrgConfirmed=0 : numCmtTagsDrg=0 : listIDObjsCmtTagsDrg=0
+				mxb=mxb_ : myb=myb_
+				swbreak
+			case OBJTYPE_WIRE
+				numPartsDrg=0 : listIdObjsPartsDrg=0 : numWiresDrgConfirmed=1 : listIdObjsWiresDrgConfirmed=idObj_ : numCmtTagsDrg=0 : listIDObjsCmtTagsDrg=0
+				getxxyy@OBJ OBJs@(idObj_), xx,yy
+				if (powf(mxb_-xx(0),2)+powf(myb_-yy(0),2) < powf(mxb_-xx(1),2)+powf(myb_-yy(1),2)) {	//カーソルに近い方の足を選択
+					listFixedLeadsWiresDrgConfirmed=2 : mxb=xx(0) : myb=yy(0)
+				} else {listFixedLeadsWiresDrgConfirmed=1 : mxb=xx(1) : myb=yy(1)}
+				swbreak
+			case OBJTYPE_CMTTAG
+				numPartsDrg=0 : listIdObjsPartsDrg=0 : numWiresDrgConfirmed=0 : listIdObjsWiresDrgConfirmed=0 : listFixedLeadsWiresDrgConfirmed=0 : numCmtTagsDrg=1 : listIDObjsCmtTagsDrg=idObj_
+				mxb=mxb_ : myb=myb_
+				swbreak
+		swend
+		if (flg_move_==FALSE) {
+			getFollowWires@edit_drag numPartsDrg, listIdObjsPartsDrg, numWiresDrgConfirmed, listIdObjsWiresDrgConfirmed, listFixedLeadsWiresDrgConfirmed, numWiresDrgExtended, listIdObjsWiresDrgExtended, listFixedLeadsWiresDrgExtended
+			numWiresDrgConfirmed=numWiresDrgExtended : repeat numWiresDrgExtended : listIdObjsWiresDrgConfirmed(cnt)=listIdObjsWiresDrgExtended(cnt) : listFixedLeadsWiresDrgConfirmed(cnt)=listFixedLeadsWiresDrgExtended(cnt) : loop
+		}
+		startDrag@edit_drag numPartsDrg, listIdObjsPartsDrg, numWiresDrgConfirmed, listIdObjsWiresDrgConfirmed, listFixedLeadsWiresDrgConfirmed, numCmtTagsDrg, listIDObjsCmtTagsDrg, mxb,myb
+		return
+	
+	#deffunc local startWire int side_, int shielded_, double mxb_,double myb_	//配線開始
+		/*
+			side_	: (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+			shielded_ : (TRUE,FALSE)=(被覆有り,無し)
+			mxb_,myb_	: マウスカーソルの基板座標(ピッチ単位)
+		*/
+		assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+		assertEx (isTorF(shielded_))
+		board2nh mxb_,myb_, mxbnh,mybnh
+		pushCurProjToUndoStack
+		if (side_==WIRESIDE_FRONT) {
+			if (shielded_) {wireColor=dfltClrFrontShieldedWire} else {wireColor=dfltClrFrontBareWire}
+		} else {
+			if (shielded_) {wireColor=dfltClrBackShieldedWire} else {wireColor=dfltClrBackBareWire}
+		}
+		xx_newWire=mxbnh,mxbnh : yy_newWire=mybnh,mybnh : createWire side_, shielded_, wireColor, xx_newWire,yy_newWire : idObjNewWire=stat
+		makeJunction mxbnh,mybnh, idObjNewWire,1	//開始点に可能ならば接続点を作る
+		listIdObjsPartsDrg=0 : listFixedLeadsWiresDrgConfirmed=1 : listIDObjsCmtTagsDrg=0 : startDrag@edit_drag 0, listIdObjsPartsDrg, 1, idObjNewWire, listFixedLeadsWiresDrgConfirmed, 0, listIDObjsCmtTagsDrg, mxb_,myb_
+		return
+	
+	#deffunc local copyPart int idObj_, double mxb_,double myb_	//部品のコピー
+		/*
+			idObj_ : 対象のオブジェクトID
+			mxb_,myb_	: マウスカーソルの基板座標(ピッチ単位)
+		*/
+		assertEx existObj(idObj_) : assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART)
+		pushCurProjToUndoStack
+		copyObj idObj_ : idObjNew=stat
+		getxxyy@OBJ OBJs@(idObjNew), xx,yy
+		listIdObjsWiresDrgConfirmed=0 : listFixedLeadsWiresDrgConfirmed=0 : listIDObjsCmtTagsDrg=0 : startDrag@edit_drag 1, idObjNew, 0, listIdObjsWiresDrgConfirmed, listFixedLeadsWiresDrgConfirmed, 0, listIDObjsCmtTagsDrg, mxb_,myb_
+		return
+	
+	#deffunc local deleteObj int idObj_	//オブジェクトの削除
+		//idObj_ : 対象のオブジェクトID
+		assertEx existObj(idObj_)
+		udrd_progress : deleteObj@proj_delObj idObj_ : delNeedlessJuncs dummy,0 : flg_projModNotSaved@=TRUE
+		drawGPCandRegion : refreshFrontAndBackWnd : arrangeMenuBarStat : arrangeStatBarStat
+		return
+	
+	#deffunc local delSinglePath int idObj_	//単一路の削除
+		//idObj_ : 配線のオブジェクトID
+		assertEx existObj(idObj_)
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		udrd_progress : delSinglePath@proj_delObj idObj_ : flg_projModNotSaved@=TRUE
+		drawGPCandRegion : refreshFrontAndBackWnd : arrangeMenuBarStat : arrangeStatBarStat
+		return
+	
+	#deffunc local beginScroll int xv_,int yv_	//スクロール開始
+		//xv_,yv_	: スクロール開始時点でのマウスのビュー座標
+		xv_begin=xv_ : yv_begin=yv_ : xofst_viewGPC_begin=xofst_viewGPC@ : yofst_viewGPC_begin=yofst_viewGPC@
+		stat_edit@|=ES_SCROLL : arrangeMenuBarStat
+		return
+	
+	#deffunc local procScroll int xv_,int yv_	//スクロール処理
+		assertEx (stat_edit@&ES_SCROLL)
+		xofst_viewGPC@=limit(xofst_viewGPC_begin+(xv_begin-xv_),0,sx_GPC@-1-offsetGpcTopLeftHole@) : yofst_viewGPC@=limit(yofst_viewGPC_begin+(yv_begin-yv_),0,sy_GPC@-1-offsetGpcTopLeftHole@)
+		refreshFrontAndBackWnd
+		return
+	
+	#deffunc local endScroll	//スクロール終了
+		assertEx (stat_edit@&ES_SCROLL)
+		stat_edit@&=(BITINV(ES_SCROLL)) : arrangeMenuBarStat : refreshFrontAndBackWnd
+		return
+	
+	/* ステータスバー */
+		#deffunc showBposOnStatBar int side_, double mxb_,double myb_	//表面,裏面ウィンドウのステータスバーに指定された座標を表示する
+			assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+			if (side_==SIDE_FRONT) {hSB=hStatBar_front@ : idsbp=IDSBP_FRONT_BPOS} else {hSB=hStatBar_back@ : idsbp=IDSBP_BACK_BPOS}
+			sendmsg hSB, SB_SETTEXT, idsbp, "x:"+strf("%4.2f",mxb_)+",y:"+strf("%4.2f",myb_)
+			return
+		
+		#deffunc clearObjInfoOnStatBar//ステータスバーに書かれたオブジェクトの情報をクリアする
+			sendmsg hStatBar_front@, SB_SETTEXT, IDSBP_FRONT_ANN@, "" : sendmsg hStatBar_front@, SB_SETTEXT, IDSBP_FRONT_PMN@, "" : sendmsg hStatBar_front@, SB_SETTEXT, IDSBP_FRONT_OTHERS@, ""
+			sendmsg hStatBar_back@, SB_SETTEXT, IDSBP_BACK_ANN@, "" : sendmsg hStatBar_back@, SB_SETTEXT, IDSBP_BACK_PMN@, "" : sendmsg hStatBar_back@, SB_SETTEXT, IDSBP_BACK_OTHERS@, ""
+			return
+		
+		#deffunc showObjInfoOnStatBar int side_, int idObj_	//表面,裏面ウィンドウのステータスバーにオブジェクトの情報を表示する
+			/*
+				side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+				idObj_ : オブジェクトID
+			*/
+			assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+			assertEx existObj(idObj_)
+			if (side_==SIDE_FRONT) {hSB=hStatBar_front@ : idsbp=IDSBP_FRONT_ANN@,IDSBP_FRONT_PMN@,IDSBP_FRONT_OTHERS@} else {hSB=hStatBar_back@ : idsbp=IDSBP_BACK_ANN@,IDSBP_BACK_PMN@,IDSBP_BACK_OTHERS@}
+			objtype=getObjtype@OBJ(OBJs@(idObj_)) : ann=getAnn@OBJ(OBJs@(idObj_))
+			switch objtype
+				case OBJTYPE_PART
+					sendmsg hSB, SB_SETTEXT, idsbp, getNamePMF@OBJ(OBJs@(idObj_))+" "+ann : sendmsg hSB, SB_SETTEXT, idsbp(1), getNamePmodel@OBJ(OBJs@(idObj_))
+					swbreak
+				case OBJTYPE_WIRE
+					if (getShielded@OBJ(OBJs@(idObj_))) {buf="wire "+ann+" (jmp)"} else {buf="wire "+ann}
+					sendmsg hSB, SB_SETTEXT, idsbp, buf : sendmsg hSB, SB_SETTEXT, idsbp(1), ""
+					swbreak
+				case OBJTYPE_CMTTAG
+					sendmsg hSB, SB_SETTEXT, idsbp, "comment tag"+str(ann) : sendmsg hSB, SB_SETTEXT, idsbp(1), ""
+					swbreak
+			swend
+			getVals@OBJ OBJs@(idObj_),vals : buf=vals+",　"+vals(1)+",　"+vals(2)+",　"+getComment@OBJ(OBJs@(idObj_)) : strrep buf,"\n"," " : sendmsg hSB, SB_SETTEXT, idsbp(2), buf
+			return
+	
+	/* キーボード,マウス割り込み */
+		/* マウス移動 */
+			#deffunc local int_front_mousemove
+				int_mousemove SIDE_FRONT
+				return
+			#deffunc local int_back_mousemove
+				int_mousemove SIDE_BACK
+				return
+			#deffunc local int_mousemove int side_	//表面or裏面でマウスカーソルが動いたときの対応
+				//side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+				assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+				/* 情報表示 */
+					xc=LOWORD(lparam) : yc=HIWORD(lparam) : client2Board side_, xc,yc, mxb,myb, mxbnh,mybnh : client2View side_, xc,yc, xv,yv
+					showBposOnStatBar side_, mxb,myb
+					idObj=bpos2idObj(side_,mxb,myb) : if (idObj>=0) {showObjInfoOnStatBar side_, idObj} else {clearObjInfoOnStatBar}
+				if (stat_edit@&ES_SELRECT) {updateRectSel mxb,myb : return}	//選択範囲更新
+				if (stat_edit@&ES_DRAG) {drag@edit_drag mxb,myb}	//ドラッグ
+				if (stat_edit@&ES_SCROLL) {procScroll xv,yv : return}	//スクロール
+				return
+			
+		/* マウス左ボタン押し下げ */
+			#deffunc local int_front_lbtndown
+				int_lbtndown SIDE_FRONT
+				return
+			#deffunc local int_back_lbtndown
+				int_lbtndown SIDE_BACK
+				return
+			#deffunc local int_lbtndown int side_	//表面or裏面で左ボタンが押されたときの対応
+				//side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+				assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+				xc=LOWORD(lparam) : yc=HIWORD(lparam) : client2View side_, xc,yc, xv,yv : client2Board side_, xc,yc, mxb,myb, mxbnh,mybnh
+				if (stat_edit@&ES_DRAG) {endDrag@edit_drag : return}	//ドラッグ終了
+				if (COVER(ES_IDLE@|ES_UIBUSY, stat_edit@)) {
+					getKeys keys
+					if (keys(idKey_SHIFT)) {
+						if (isReadOnlyCurProj) {gsel WID_MAIN : dialog "読み取り専用です", 1, appName : return}
+						if (keys(idKey_S)) {
+							if (side_==SIDE_FRONT) {startSelRect mxb,myb, SIDE_RECT_SEL_FRONT} else {startSelRect mxb,myb, SIDE_RECT_SEL_BACK}	//片側選択
+						} else {startSelRect mxb,myb, SIDE_RECT_SEL_FRONT|SIDE_RECT_SEL_BACK}	//両側選択
+						return
+					}
+					beginScroll xv,yv : return//スクロール開始
+				}
+				return
+			
+		/* マウス左ボタン開放 */
+			#deffunc local int_front_lbtnup
+				int_lbtnup SIDE_FRONT
+				return
+			#deffunc local int_back_lbtnup
+				int_lbtnup SIDE_BACK
+				return
+			#deffunc local int_lbtnup int side_	//表面or裏面で左ボタンが放されときの対応
+				//side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+				assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+				xc=LOWORD(lparam) : yc=HIWORD(lparam) : client2Board side_, xc,yc, mxb,myb, mxbnh,mybnh
+				if (stat_edit@&ES_SELRECT) {endSelRect mxb,myb : return}	//範囲選択終了
+				if (stat_edit@&ES_SCROLL) {endScroll : return}	//スクロール終了
+				return
+			
+		/* マウス右ボタン押し下げ */
+			#deffunc local ind_front_rbtndown
+				int_rbtndown SIDE_FRONT
+				return
+			#deffunc local int_back_rbtndown
+				int_rbtndown SIDE_BACK
+				return
+			#deffunc local int_rbtndown int side_	//表面or裏面で右ボタンが押されたときの対応
+				//side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+				assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+				if (stat_edit@&ES_SELRECT) {canselSelRect : flg_ignoreNextWM_RBUTTONUP@=TRUE : return}	//範囲選択キャンセル
+				if (stat_edit@&ES_DRAG) {cancelDrag@edit_drag : flg_ignoreNextWM_RBUTTONUP@=TRUE : return}	//ドラッグキャンセル
+				return
+	
+		/* マウス右ボタン開放 */
+			#deffunc local int_front_rbtnup
+				int_rbtnup SIDE_FRONT
+				return
+			#deffunc local int_back_rbtnup
+				int_rbtnup SIDE_BACK
+				return
+			#deffunc local int_rbtnup int side_	//表面or裏面で右ボタンが放されたときの対応
+				//side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+				assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+				if (isCursorOnBoard()==FALSE) {return}
+				idObj=getObjUnderCursor()
+				if (COVER(ES_IDLE@|ES_UIBUSY, stat_edit@)) {
+					if (idObj!=-1) {
+						if (isReadOnlyCurProj) {gsel WID_MAIN : dialog "読み取り専用です", 1, appName : return}
+						showObjRCMenu idObj : return	//オブジェクト右クリックメニュー表示
+					}
+					showBoardSurfaceRCMenu	//基板面右クリックメニュー表示
+				}
+				return
+	
+		/* キー押し下げ */
+			#deffunc local int_front_keydown
+				int_keydown SIDE_FRONT
+				return
+			#deffunc local int_back_keydown
+				int_keydown SIDE_BACK
+				return
+			#deffunc local int_keydown int side_	//表面or裏面にキー入力があったときの対応
+				//side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+				assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+				xs=ginfo_mx,ginfo_my : if (side_=SIDE_FRONT) {hwnd_side=hwnd_front@} else {hwnd_side=hwnd_back@}
+				ScreenToClient hwnd_side,xs : xc=xs(0) : yc=xs(1)
+				client2Board side_, xc,yc, mxb,myb, mxbnh,mybnh : idObj=bpos2idObj(side_,mxb,myb)	//カーソル下のオブジェクトのID
+				getKeys keys
+				if (stat_edit@&ES_DRAG) {
+					if (keys(idKey_ESC)) {cancelDrag@edit_drag : return}	//ドラッグキャンセル
+					if (keys(idKey_F)) {bringToFront@edit_drag : return}	//ドラッグ中の部品を最前面に移動
+					if (keys(idKey_R)) {rotate@edit_drag mxb,myb : return}	//ドラッグ中のオブジェクトを回転
+					return
+				}
+				if (COVER(ES_IDLE@|ES_UIBUSY, stat_edit@)) {
+					if (isReadOnlyCurProj) {gsel WID_MAIN : dialog "読み取り専用です", 1, appName : return}
+					if (idObj!=-1) {
+						if (keys(idKey_C)) {if (isPart(idObj)) {copyPart idObj, mxb,myb} : return}	//部品のコピー
+						if (keys(idKey_D)) {
+							if ((keys(idKey_SHIFT)=TRUE)&&isWire(idObj)) {delSinglePath idObj : return	//単一路の削除
+							} else {deleteObj idObj : return}	//オブジェクトの削除
+						}
+						if (keys(idKey_F)) {if (isPart(idObj)) {bringPartToFront idObj} : return}	//部品を最前面に移動
+						if (keys(idKey_G)) {startDrag idObj, FALSE, mxb,myb}	//オブジェクトのドラッグ開始
+						if (keys(idKey_M)) {startDrag idObj, TRUE, mxb,myb}	//オブジェクトの移動開始
+					}
+					if (keys(idKey_W)) {if (isPointOnBoard(mxb,myb)) {startWire side_, FALSE, mxb,myb} : return}	//裸線開始
+					if (keys(idKey_J)) {if (isPointOnBoard(mxb,myb)) {startWire side_, TRUE, mxb,myb} : return}	//被覆線開始
+					if (COVER(ES_IDLE@, stat_edit@)) {
+						if (keys(idKey_A)) {int_addPart : return}	//部品の追加
+						if (keys(idKey_T)) {int_addCmtTag side_ : return}	//コメントタグの追加
+						if (keys(idKey_V)) {if (idObj!=-1) {int_addComment idObj : return}}	//コメント等追加
+					}
+				}
+				return
+#global
+
+#module edit_patterns_UI	//UI操作パターン
+	#deffunc pattern_UI_MouseEditOpe_done	//操作完了
+		clearRedoStack : flg_projModNotSaved@=TRUE : drawGPCandRegion : refreshFrontAndBackWnd
+		arrangeMenuBarStat : arrangeStatBarStat
+		return
+	
+	#deffunc pattern_UI_MouseEditOpe_cancel	//操作中止
+		popUndoStackAndOverwriteCurProj : drawGPCandRegion : refreshFrontAndBackWnd
+		arrangeMenuBarStat : arrangeStatBarStat
+		return
+#global
+
+#module edit_RCMenu	//右クリックメニューの処理
+	mxb=0 : myb=0	//未初期化変数警告回避
+	
+	#deffunc showBoardSurfaceRCMenu	//基板面右クリックメニューの表示
+		assertEx isCursorOnBoard()
+		side=getCursorSide() : getCursorPosOnBoard mxb,myb
+		gosub *setBoardSurfaceRCMenuItemAvailability
+		TrackPopupMenu hBoardSurfaceRCMenu@, TPM_LEFTALIGN|TPM_TOPALIGN|TPM_RETURNCMD|TPM_LEFTBUTTON, ginfo_mx,ginfo_my, 0, hwnd_main@, DONTCARE_INT
+		switch stat
+			case 0 : return
+			case IDRCM_BOARD_SURFACE_startBareWire : startWire@edit_common side, FALSE, mxb,myb : swbreak
+			case IDRCM_BOARD_SURFACE_startShieldedWire : startWire@edit_common side, TRUE, mxb,myb : swbreak
+			case IDRCM_BOARD_SURFACE_selRect_front : startSelRect mxb,myb, SIDE_RECT_SEL_FRONT : swbreak
+			case IDRCM_BOARD_SURFACE_selRect_back : startSelRect mxb,myb, SIDE_RECT_SEL_BACK : swbreak
+			case IDRCM_BOARD_SURFACE_selRect_both : startSelRect mxb,myb, SIDE_RECT_SEL_FRONT|SIDE_RECT_SEL_BACK : swbreak
+			case IDRCM_BOARD_SURFACE_viewTopLeft : viewTopLeft : swbreak
+			case IDRCM_BOARD_SURFACE_addCmtTag : int_addCmtTag side : swbreak
+		swend
+		return
+		*setBoardSurfaceRCMenuItemAvailability	//基板面右クリックメニュー項目の有効/無効の設定
+			if (isReadOnlyCurProj) {
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_startBareWire, MF_GRAYED
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_startShieldedWire, MF_GRAYED
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_startShieldedWire, MF_GRAYED|MF_BYPOSITION	//範囲選択
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_viewTopLeft, MF_ENABLED
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_addCmtTag, MF_GRAYED
+			} else {
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_startBareWire, MF_ENABLED
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_startShieldedWire, MF_ENABLED
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_startShieldedWire, MF_ENABLED|MF_BYPOSITION	//範囲選択
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_viewTopLeft, MF_ENABLED
+				EnableMenuItem hBoardSurfaceRCMenu@, IDRCM_BOARD_SURFACE_addCmtTag, MF_ENABLED
+			}
+			return
+	
+	#deffunc showObjRCMenu int idObj_	//オブジェクト右クリックメニューの表示
+		//idObj_ : オブジェクトID
+		assertEx existObj(idObj_)
+		getCursorPosOnBoard mxb,myb
+		objtype=getObjType@OBJ(OBJs@(idObj_))
+		switch objtype
+			case OBJTYPE_PART
+				gosub *setPartRCMenuItemAvailability
+				TrackPopupMenu hPartRCMenu@, TPM_LEFTALIGN|TPM_TOPALIGN|TPM_RETURNCMD|TPM_LEFTBUTTON, ginfo_mx,ginfo_my, 0, hwnd_main@, DONTCARE_INT
+				switch stat
+					case 0 : swbreak
+					case IDRCM_PART_bringToFront : bringPartToFront@edit_common idObj_ : swbreak
+					case IDRCM_PART_drag : startDrag@edit_common idObj_, FALSE, mxb,myb : swbreak
+					case IDRCM_PART_move : startDrag@edit_common idObj_, TRUE, mxb,myb : swbreak
+					case IDRCM_PART_copy : copyPart@edit_common idObj_, mxb,myb : swbreak
+					case IDRCM_PART_addComment : int_addComment idObj_ : swbreak
+					case IDRCM_PART_delete : deleteObj@edit_common idObj_ : swbreak
+				swend
+				swbreak
+			case OBJTYPE_WIRE
+				gosub *setWireRCMenuItemAvailability
+				TrackPopupMenu hWireRCMenu@, TPM_LEFTALIGN|TPM_TOPALIGN|TPM_RETURNCMD|TPM_LEFTBUTTON, ginfo_mx,ginfo_my, 0, hwnd_main@, DONTCARE_INT
+				switch stat
+					case 0 : swbreak
+					case IDRCM_WIRE_drag : startDrag@edit_common idObj_, FALSE, mxb,myb : swbreak
+					case IDRCM_WIRE_move : startDrag@edit_common idObj_, TRUE, mxb,myb : swbreak
+					case IDRCM_WIRE_chColor : int_chWireColor idObj_ : swbreak
+					case IDRCM_WIRE_addComment : int_addComment idObj_ : swbreak
+					case IDRCM_WIRE_delete : deleteObj@edit_common idObj_ : swbreak
+					case IDRCM_WIRE_delSinglePath : delSinglePath@edit_common idObj_ : swbreak
+				swend
+				swbreak
+			case OBJTYPE_CMTTAG
+				TrackPopupMenu hCmtTagRCMenu@, TPM_LEFTALIGN|TPM_TOPALIGN|TPM_RETURNCMD|TPM_LEFTBUTTON, ginfo_mx,ginfo_my, 0, hwnd_main@, DONTCARE_INT
+				switch stat
+					case 0 : swbreak
+					case IDRCM_CMTTAG_move : startDrag@edit_common idObj_, TRUE, mxb,myb : swbreak
+					case IDRCM_CMTTAG_del : deleteObj@edit_common idObj_ : swbreak
+					case IDRCM_CMTTAG_addComment : int_addComment idObj_ : swbreak
+				swend
+				swbreak
+		swend
+		return
+		*setPartRCMenuItemAvailability	//部品右クリックメニュー項目の有効/無効の設定
+			if (stat_edit@==ES_IDLE) {EnableMenuItem hPartRCMenu@, IDRCM_PART_addComment, MF_ENABLED
+			} else {EnableMenuItem hPartRCMenu@, IDRCM_PART_addComment, MF_GRAYED}
+			return
+		*setWireRCMenuItemAvailability	//配線右クリックメニュー項目の有効/無効の設定
+			if (stat_edit@==ES_IDLE) {EnableMenuItem hWireRCMenu@, IDRCM_WIRE_chColor, MF_ENABLED : EnableMenuItem hWireRCMenu@, IDRCM_WIRE_addComment, MF_ENABLED
+			} else {EnableMenuItem hWireRCMenu@, IDRCM_WIRE_chColor, MF_GRAYED : EnableMenuItem hWireRCMenu@, IDRCM_WIRE_addComment, MF_GRAYED}
+			return
+#global
+
+#module edit_smallCalcs	//小規模な計算
+	rxLeads=0 : ryLeads=0 : xb=0 : yb=0	//未初期化変数警告回避
+
+	#defcfunc metric_client2Board int d_	//サイズ変換。クライアント座標系→基板座標系
+		return double(d_)/pitch2px@
+
+	#defcfunc metric_board2Client double d_	//サイズ変換。基板座標系→クライアント座標系
+		return int(d_*pitch2px@)
+	
+	#deffunc client2Board int side_, int xc_,int yc_, var xb_, var yb_, var xbnh_,var ybnh_	//クライアント座標→基板座標
+		/*
+			(in) side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+			(in) xc_,yc_ : クライアント座標
+			(out) xb_,yb_ : 基板座標(double,基板外もあり得る)の格納先
+			(out) xbnh_,ybnh_	: 基板上に制限され、近くの穴に入るように四捨五入された座標(int)の格納先。
+		*/
+		assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+		if ((side_=SIDE_BACK)&&(opt_back_mirror@==FALSE)) {xb_=double(xofst_viewGPC@+(sxc_back@-1-xc_)/magDisp@-offsetGpcTopLeftHole@)/pitch2px@
+		} else {xb_=double(xofst_viewGPC@+(xc_/magDisp@)-offsetGpcTopLeftHole@)/pitch2px@}
+		yb_=double(yofst_viewGPC@+(yc_/magDisp@)-offsetGpcTopLeftHole@)/pitch2px@
+		xbnh_=round(limitf(xb_,0.0,numHole_xCurProj-1)) : ybnh_=round(limitf(yb_,0.0,numHole_yCurProj-1))
+		return
+	
+	#defcfunc isPointOnBoard double xb_,double yb_	//与えられた点が基板の上にあるかどうか
+		return (xb_>=-offsetGpcTopLeftHole@/pitch2px@)&&(xb_<=numHole_xCurProj-1+offsetGpcTopLeftHole@/pitch2px@)&&(yb_>=-offsetGpcTopLeftHole@/pitch2px@)&&(yb_<=numHole_yCurProj-1+offsetGpcTopLeftHole@/pitch2px@)
+	
+	#deffunc board2nh double xb_,double yb_, var xbnh_,var ybnh_	//基板座標→近傍穴
+		/*
+			xb_,yb_ : 基板座標(double,基板外もあり得る)
+			xbnh_,ybnh_	: 基板上に制限され、近くの穴に入るように四捨五入された座標(int)の格納先。
+		*/
+		xbnh_=round(limitf(xb_,0.0,numHole_xCurProj-1)) : ybnh_=round(limitf(yb_,0.0,numHole_yCurProj-1))
+		return
+	
+	#deffunc client2View int side_, int xc_,int yc_, var xv_,var yv_	//クライアント座標→ビュー座標
+		/*
+			side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+			xc_,yc_ : クライアント座標
+			xv_,yv_	: ビュー座標(px)の格納先
+		*/
+		assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+		if ((side_=SIDE_BACK)&&(opt_back_mirror@==FALSE)) {xv_=(sxc_back@-1-xc_)/magDisp@} else {xv_=xc_/magDisp@} : yv_=yc_/magDisp@
+		return
+	
+	#defcfunc bpos2idObj int side_, double xb_,double yb_, local c	//基板座標→オブジェクトID
+		/*
+			side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+			xb_,yb_ : 基板座標
+	
+			何も無ければ-1を返す
+		*/
+		assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+		if (side_==SIDE_FRONT) {gsel WID_FRONTREGION} else {gsel WID_BACKREGION}
+		xreg=offsetGpcTopLeftHole@+xb_*pitch2px@ : yreg=offsetGpcTopLeftHole@+yb_*pitch2px@ : pget xreg,yreg : c=RGB(ginfo_r,ginfo_g,ginfo_b)
+		if (c==0xFFFFFF) {return -1}
+		return c
+	
+	#deffunc topLeftHoleInView var xhtlv_,var yhtlv_	//表面ビュー内の一番左上の穴の座標
+		/*
+			(out) xhtlv_,xhtlv_ : ビュー内の一番左上の穴の座標(int)。
+			
+			左上の穴がビューの右に隠れていれば xhtlv_=-1, ビューの左に隠れていれば xhtlv_=numHole_x。yhtlvも同様。
+		*/
+		sx_sight=sxc_front@/magDisp@ : sy_sight=syc_front@/magDisp@
+		if (xofst_viewGPC@>0) {
+			if (xofst_viewGPC@>=sx_sight-offsetGpcTopLeftHole@) {xhtlv_=numHole_xCurProj} else {xhtlv_=limit((xofst_viewGPC@-offsetGpcTopLeftHole@)/pitch2px@+1,0,numHole_xCurProj-1)}
+		} else {
+			if (xofst_viewGPC@<=-sx_sight-offsetGpcTopLeftHole@) {xhtlv_=-1} else {xhtlv_=0}
+		}
+		if (yofst_viewGPC@>0) {
+			if (yofst_viewGPC@>=sy_sight-offsetGpcTopLeftHole@) {yhtlv_=numHole_yCurProj} else {yhtlv_=limit((yofst_viewGPC@-offsetGpcTopLeftHole@)/pitch2px@+1,0,numHole_yCurProj-1)}
+		} else {
+			if (yofst_viewGPC@<=-sy_sight-offsetGpcTopLeftHole@) {yhtlv_=-1} else {yhtlv_=0}
+		}
+		return
+	
+	#deffunc centerHoleInView int side_, var xhcv_, var yhcv_	//ビューの中心に最も近い穴の基板座標
+		/*
+			(in) side_ : (SIDE_FRONT,SIDE_BACK)=(表面,裏面)
+			(out) xhcv_,yhcv_ : ビューの中心に最も近い穴の基板座標
+		*/
+		assertEx ((side_==SIDE_FRONT)||(side_==SIDE_BACK))
+		if (side_==SIDE_FRONT) {xc=sxc_front@/2 : yc=syc_front@/2} else {xc=sxc_back@/2 : yc=syc_back@/2}
+		client2Board side_, xc,yc, xb,yb, xhcv_,yhcv_
+		return
+	
+	#deffunc calcPartLeadsBasedMeasurments int idPMFDat_,int idPMDat_, int deg_, var xReqHoles_,var yReqHoles_, var rx_FL2TLL_,var ry_FL2TLL_	//足の配置に基づいた部品の寸法の計算
+		/*
+			(in) idPMFDat_	: 部品モデルファミリデータID
+			(in) idPMDat_		: 部品モデルデータID
+			(in) deg_	: 角度(0,90,180,270)
+			(out) xReqHoles_	: 現在の角度で部品を基板に挿すために最低限必要なx方向の穴の数
+			(out) yReqHoles_	: 〃y方向〃
+			(out) rx_FL2TLL_	: 現在の角度における1番足に対する左上足の相対x座標(ピッチ単位)
+			(out) ry_FL2TLL_	: 〃y〃
+		*/
+		assertEx existPMF(idPMFDat_) : assertEx existPmodel@PMFDat(PMFDats@(idPMFDat_),idPMDat_)
+		assertEx ((deg_=0)||(deg_==90)||(deg_=180)||(deg_=270))
+		numLeads=getNumLeads@PMFDat(PMFDats@(idPMFDat_),idPMDat_)
+		dupRxyLeads@PMFDat PMFDats@(idPMFDat_),idPMDat_, rxLeads,ryLeads
+		deg_rad=deg2rad(deg_)
+		minx=0 : maxx=0 : miny=0 : maxy=0
+		repeat numLeads-1
+			x=round(cos(deg_rad)*rxLeads(cnt) - sin(deg_rad)*ryLeads(cnt)) : y=round(sin(deg_rad)*rxLeads(cnt) + cos(deg_rad)*ryLeads(cnt))
+			if (x<minx) {minx=x} : if (x>maxx) {maxx=x} : if (y<miny) {miny=y} : if (y>maxy) {maxy=y}
+		loop
+		xReqHoles_=maxx-minx+1 : yReqHoles_=maxy-miny+1 : rx_FL2TLL_=limit(minx,MIN_INT,0) : ry_FL2TLL_=limit(miny,MIN_INT,0)
+		return
+#global
+
+#module edit_smallFuncs	//小規模関数群
+	mxb=0 : myb=0 : mxbnh=0 : mybnh=0	//未初期化変数警告回避
+	
+	#defcfunc getCursorSide //マウスカーソルが表面,裏面ウィンドウのどちらにあるか調べる。
+		//戻り値=(SIDE_FRONT,SIDE_BACK,-1)=(表面,裏面,どちらでもない)
+		hwnd_underMC=WindowFromPoint(ginfo_mx,ginfo_my)
+		switch hwnd_underMC
+			case hwnd_front@ : return SIDE_FRONT : swbreak
+			case hwnd_back@ : return SIDE_BACK : swbreak
+			default : return -1 : swbreak
+		swend
+		return
+	
+	#defcfunc getObjUnderCursor	//マウスカーソルの下にオブジェクトがあればそのIDを返す。
+		//戻り値=(-1,other)=(無い,オブジェクトID)
+		hwnd_underMC=WindowFromPoint(ginfo_mx,ginfo_my)
+		switch hwnd_underMC
+			case hwnd_front@ : side=SIDE_FRONT : swbreak
+			case hwnd_back@ : side=SIDE_BACK : swbreak
+			default : return -1 : swbreak
+		swend
+		xs=ginfo_mx,ginfo_my : ScreenToClient hwnd_underMC,xs : xc=xs(0) : yc=xs(1)
+		client2Board side, xc,yc, mxb,myb, mxbnh,mybnh
+		return bpos2idObj(side,mxb,myb)
+	
+	#defcfunc isCursorOnBoard	//マウスカーソルが基盤の上にあるかどうか調べる
+		hwnd_underMC=WindowFromPoint(ginfo_mx,ginfo_my)
+		switch hwnd_underMC
+			case hwnd_front@ : side=SIDE_FRONT : swbreak
+			case hwnd_back@ : side=SIDE_BACK : swbreak
+			default : return FALSE : swbreak
+		swend
+		xs=ginfo_mx,ginfo_my : ScreenToClient hwnd_underMC,xs : xc=xs(0) : yc=xs(1)
+		client2Board side, xc,yc, mxb,myb, mxbnh,mybnh
+		return ((mxb>=xTLBoardSurface)&&(mxb<=xBRBoardSurface)&&(myb>=yTLBoardSurface)&&(myb<=yBRBoardSurface))
+	
+	#deffunc getCursorPosOnBoard var mxb_, var myb_	//マウスカーソルの基板上での座標を取得する
+		/*
+			座標はピッチ単位(double)で取得される。基板外もあり得る。
+			
+			mxb_,myb_ : 座標の格納先
+	
+			[stat]
+				(0,1)=(成功,マウスカーソルが表面,裏面どちらのウィンドウ上にもない)
+		*/
+		hwnd_underMC=WindowFromPoint(ginfo_mx,ginfo_my)
+		switch hwnd_underMC
+			case hwnd_front@ : side=SIDE_FRONT : swbreak
+			case hwnd_back@ : side=SIDE_BACK : swbreak
+			default : return 1 : swbreak
+		swend
+		xs=ginfo_mx,ginfo_my : ScreenToClient hwnd_underMC,xs : xc=xs(0) : yc=xs(1)
+		client2Board side, xc,yc, mxb_,myb_, mxbnh,mybnh
+		return 0
+#global
+
+#module edit_uiAddPart	//部品の追加処理
+	sxImgs=0 : syImgs=0 : srcxImgs=0 : srcyImgs=0 : xReqHoles=0 : yReqHoles=0 : rx_FL2TLL=0 : ry_FL2TLL=0 : xhtlv=0 : yhtlv=0 : idSA_PREVIEW_ADDPART=0	//未初期化変数警告回避
+
+	#deffunc int_addPart
+		assertEx (flg_projLoaded@)
+		assertEx (isReadOnlyCurProj==FALSE)
+		if (count_open_wndAddPart@==0) {	//初回準備
+			idPMFDat=-1 : idPMDat=-1
+			/* コンボボックスにモデルファミリ一覧を表示 */
+				hCombox=hwndCombox@(IDCOMBOX_addPart) : sendmsg hCombox, CB_RESETCONTENT, 0,0
+				if (numPMFs@) {
+					foreach PMFDats@ : sendmsg hCombox, CB_ADDSTRING, 0, getNamePMF@PMFDat(PMFDats@(cnt)) : loop : sendmsg hCombox, CB_SETCURSEL, 0,0
+					sendmsg hwnd_addPart@, WM_COMMAND, CBN_SELCHANGE<<16, hCombox	//モデル一覧リストボックス更新処理に点火
+				}
+		} else {
+			sendmsg hwnd_addPart@, WM_COMMAND, LBN_SELCHANGE<<16, hwndListbox@(IDLISTBOX_addPart)	//プレビュー表示処理に点火
+		}
+		gsel WID_ADDPART,1 : openLsideWnd@ SX_ADDPART@ : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		count_open_wndAddPart@++
+		return
+	
+	*int_wndAddPart_WM_COMMAND
+		switch lparam
+			case hwndCombox@(IDCOMBOX_addPart)	//コンボボックスからの通知
+				if (HIWORD(wparam)==CBN_SELCHANGE) {
+					hCombox=hwndCombox@(IDCOMBOX_addPart) : sendmsg hCombox, CB_GETCURSEL, 0,0
+					if (stat!=CB_ERR) {
+						namePMF="" : sendmsg hCombox, CB_GETLBTEXT, stat, varptr(namePMF) : idPMFDat=namePMF2idPMFDat(namePMF) : caption=getCaption@PMFDat(PMFDats@(idPMFDat))	//選択されたモデルファミリ名とそのデータID, キャプションを取得
+						sendmsg hwndMesbox@(IDMESBOX_addPart_PMFcaption), WM_SETTEXT, 0, varptr(caption)//キャプションを表示
+						/* リストボックスにモデル一覧を表示 */
+							hListbox=hwndListbox@(IDLISTBOX_addPart) : sendmsg hListbox, LB_RESETCONTENT, 0,0
+							idPMDats=0 : enumIdPmodelDats@PMFDat PMFDats@(idPMFDat),idPMDats : numParts=stat	//モデルデータIDのリストを取得
+							if (numParts) {
+								repeat numParts : sendmsg hListbox, LB_ADDSTRING, 0, getNamePmodel@PMFDat(PMFDats@(idPMFDat),idPMDats(cnt)) : loop : sendmsg hListbox, LB_SETCURSEL, 0,0
+								sendmsg hwnd_addPart@, WM_COMMAND, LBN_SELCHANGE<<16, hListBox	//プレビュー表示処理に点火
+							}
+					}
+				}
+				swbreak
+			case hwndListbox@(IDLISTBOX_addPart)	//リストボックスからの通知
+				if (HIWORD(wparam)==LBN_SELCHANGE) {
+					hListbox=hwndListbox@(IDLISTBOX_addPart) : sendmsg hListbox, LB_GETCURSEL, 0,0
+					if (stat!=LB_ERR) {	//モデルのプレビュー,説明を表示
+						/* 画像の大きさ,説明等取得 */
+							namePmodel="" : sendmsg hListbox, LB_GETTEXT, stat, varptr(namePmodel) : idPMDat=namePmodel2idPMDat@PMFDat(PMFDats@(idPMFDat),namePmodel)
+							dupSxyImgs@PMFDat PMFDats@(idPMFDat), idPMDat, sxImgs,syImgs : sxImg=sxImgs(0) : syImg=syImgs(0)
+							dupSrcxyImgs@PMFDat PMFDats@(idPMFDat), idPMDat, srcxImgs,srcyImgs : srcxImg=srcxImgs(0) : srcyImg=srcyImgs(0)
+							expl=getExpl@PMFDat(PMFDats@(idPMFDat), idPMDat)
+						/* プレビュー画面 */
+							sx_preview_addpart=limit(sxImg,SXC_SCRL_PREVIEW_ADDPART,MAX_INT) : sy_preview_addpart=limit(syImg,SYC_SCRL_PREVIEW_ADDPART,MAX_INT)
+							if (count_open_wndAddPart@) {deleteScrollArea idSA_PREVIEW_ADDPART}	//既存のスクロールエリアを削除
+							gsel WID_ADDPART : pos POSX_SCRL_PREVIEW_ADDPART,POSY_SCRL_PREVIEW_ADDPART : setScrollArea WID_SCRL_PREVIEW_ADDPART, sx_preview_addpart,sy_preview_addpart, SXC_SCRL_PREVIEW_ADDPART,SYC_SCRL_PREVIEW_ADDPART, 4,4 : idSA_PREVIEW_ADDPART=stat	//スクロールエリア設置
+							bgscr WID_PREVIEW_ADDPART, sx_preview_addpart,sy_preview_addpart, 2 : attachWndToScrollArea idSA_PREVIEW_ADDPART, WID_PREVIEW_ADDPART
+							gsel WID_PREVIEW_ADDPART,0 : rgbcolor boardColor : boxf : gmode 4,sxImg,syImg,256 : rgbcolor transparentColor : pos (sx_preview_addpart-sxImg)/2,(sy_preview_addpart-syImg)/2 : gcopy WID_PLIBUF, srcxImg,srcyImg : gsel WID_PREVIEW_ADDPART,1
+						sendmsg hwndMesbox@(IDMESBOX_addPart_PMexpl), WM_SETTEXT, 0, varptr(expl)	//説明文を表示
+					}
+				}
+				swbreak
+		swend
+		return
+		
+	*int_button_addPart_add
+		if (COVER(ES_IDLE@|ES_UIBUSY, stat_edit@)==FALSE) {return}
+		gsel WID_MAIN	//ダイアログのため
+		if ((idPMFDat==-1)||(idPMDat==-1)) {dialog "部品が選択されていません",1,appName : return}
+		calcPartLeadsBasedMeasurments idPMFDat,idPMDat, 0, xReqHoles,yReqHoles, rx_FL2TLL,ry_FL2TLL
+		if ((xReqHoles>numHole_xCurProj)||(ry_FL2TLL>numHole_yCurProj)) {dialog "基板が狭すぎて設置できません",1,appName : return}
+		topLeftHoleInView xhtlv,yhtlv : xhFL=round(limitf(xhtlv, -rx_FL2TLL, numHole_xCurProj-(xReqHoles+rx_FL2TLL))) : yhFL=round(limitf(yhtlv, -ry_FL2TLL, numHole_yCurProj-(yReqHoles+ry_FL2TLL)))	//1番足の座標
+		pushCurProjToUndoStack
+		newPart idPMFDat,idPMDat, 0, xhFL,yhFL : idObjNew=stat
+		drawGPCandRegion : refreshFrontAndBackWnd
+		listIdObjsWiresDrgConfirmed=0 : listFixedLeadsWiresDrgConfirmed=0 : listIDObjsCmtTagsDrg=0
+		startDrag@edit_drag 1, idObjNew, 0, listIdObjsWiresDrgConfirmed, listFixedLeadsWiresDrgConfirmed, 0, listIDObjsCmtTagsDrg, 0.5*(xReqHoles-1)+xhFL+rx_FL2TLL,0.5*(yReqHoles-1)+yhFL+ry_FL2TLL
+		return
+	
+	*int_button_addPart_close
+		gsel WID_PREVIEW_ADDPART,-1 : closeLsideWnd@ : gsel WID_ADDPART,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+		return
+#global
+
+#module proj_addCmtTag	//コメントタグの追加処理
+	xhtlv=0 : yhtlv=0	//未初期化変数警告回避
+	
+	#deffunc int_addCmtTag int sideIntent_
+		//sideIntent_ : 意図する面。(SIDE_FRONT,SIDE_BACK)=(表,裏)。これに応じて面選択コンボボックスのデフォルト選択項目が切り替わる。
+		assertEx (flg_projLoaded@)
+		assertEx (isReadOnlyCurProj==FALSE)
+		assertEx ((sideIntent_==SIDE_FRONT)||(sideIntent_==SIDE_BACK))
+		if (bufInput@(IDINPUT_addCmtTag_bgColor)=="") {buf=strf("0x%X",defltBGClrCmtTag) : sendmsg hwndInput@(IDINPUT_addCmtTag_bgColor), WM_SETTEXT, 0, varptr(buf)}
+		if (bufInput@(IDINPUT_addCmtTag_chrColor)=="") {buf=strf("0x%X",defltChrClrCmtTag) : sendmsg hwndInput@(IDINPUT_addCmtTag_chrColor), WM_SETTEXT, 0, varptr(buf)}
+		sendmsg hwndCombox@(IDCOMBOX_addCmtTag), CB_SETCURSEL, (sideIntent_==SIDE_BACK),0
+		gsel WID_ADDCMTTAG,1 : openlsideWnd SX_ADDCMTTAG : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		return
+	
+	*int_button_wndAddCmtTag_browseColor
+		gsel WID_ADDCMTTAG : hwndButton_int=objinfo(stat,2)
+		gsel WID_MAIN : dialog "",33
+		if (stat==0) {return}
+		buf=strf("0x%X", RGB(ginfo_r,ginfo_g,ginfo_b))
+		if (hwndButton_int==hwndButton@(IDBUTTON_addCmtTag_browseBgColor)) {sendmsg hwndInput@(IDINPUT_addCmtTag_bgColor), WM_SETTEXT, 0, varptr(buf)
+		} else {sendmsg hwndInput@(IDINPUT_addCmtTag_chrColor), WM_SETTEXT, 0, varptr(buf)}
+		return
+	
+	*int_button_wndAddCmtTag_add
+		if (bufMesbox@(IDMESBOX_addCmtTag)=="") {dialog "コメントは1文字以上必要です",1,appName : return}
+		sendmsg hwndCombox@(IDCOMBOX_addCmtTag), CB_GETCURSEL, 0, 0 : if (stat) {side=SIDE_BACK} else {side=SIDE_FRONT}
+		topLeftHoleInView xhtlv,yhtlv
+		pushCurProjToUndoStack
+		newCmtTag side, xhtlv,yhtlv, hex2int(bufInput@(IDINPUT_addCmtTag_bgColor)),hex2int(bufInput@(IDINPUT_addCmtTag_chrColor)), bufMesbox@(IDMESBOX_addCmtTag) : idObjNew=stat
+		drawGPCandRegion : refreshFrontAndBackWnd
+		listIdObjsPartsDrg=0 : listIdObjsWiresDrgConfirmed=0 : listFixedLeadsWiresDrgConfirmed=0
+		startDrag@edit_drag 0, listIdObjsPartsDrg, 0, listIdObjsWiresDrgConfirmed, listFixedLeadsWiresDrgConfirmed, 1, idObjNew, xhtlv,yhtlv
+		return
+
+	*int_button_wndAddCmtTag_close
+		closeLsideWnd@ : gsel WID_ADDCMTTAG,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+		return
+#global
+
+#module edit_addComment	//コメント追加処理
+	vals=""	//未初期化変数警告回避
+	
+	#deffunc int_addComment int idObj_
+		//idObj_ : ターゲットのオブジェクトID
+		assertEx (flg_projLoaded@)
+		assertEx (isReadOnlyCurProj==FALSE)
+		assertEx existObj(idObj_)
+		idObj=idObj_
+		/* UI準備 */
+			getVals@OBJ OBJs@(idObj), vals : comment=getComment@OBJ(OBJs@(idObj))
+			repeat 3 : sendmsg hwndInput@(IDINPUT_comment_val1+cnt), WM_SETTEXT, 0, varptr(vals(cnt)) : loop
+			sendmsg hwndMesbox@(IDMESBOX_comment), WM_SETTEXT, 0, varptr(comment)
+		gsel WID_COMMENT,1 : openlsideWnd SX_COMMENT : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		return
+	*int_button_addComment_chg
+		if (existObj(idObj)==FALSE) {gsel WID_MAIN : dialog "その部品はもう存在しません",1,appName : gosub *int_button_addComment_cancel : return}
+		repeat 3 : vals(cnt)=bufInput@(IDINPUT_comment_val1+cnt) : loop
+		udrd_progress : setVals@OBJ OBJs@(idObj), vals : setComment@OBJ OBJs@(idObj), mgui_getEditText(hwndMesbox@(IDMESBOX_comment)) : flg_projModNotSaved@=TRUE
+		drawGPCandRegion : refreshFrontAndBackWnd : arrangeStatBarStat
+		gosub *int_button_addComment_cancel
+		return
+	*int_button_addComment_cancel
+		closeLsideWnd : gsel WID_COMMENT,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+		return
+#global
+
+#module edit_chWireColor	//配線の色変更処理
+	#deffunc int_chWireColor int idObj_
+		assertEx (flg_projLoaded@)
+		assertEx (isReadOnlyCurProj==FALSE)
+		assertEx existObj(idObj_) : assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		idObj=idObj_
+		wireColor=getWireColor@OBJ(OBJs@(idObj))
+
+		//入力ボックスの前回の値を維持する方が使いやすいとの要望により、無効に。
+		//repeat 3 : buf=str((wireColor>>(8*(2-cnt)))&0xFF) : sendmsg hwndInput@(IDINPUT_chWireColor_R+cnt), WM_SETTEXT, 0, varptr(buf) : loop
+
+		gsel WID_CHWIRECOLOR,1 : openlsideWnd SX_CHWIRECOLOR : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		return
+	*int_button_openColorDlg
+		gsel WID_MAIN : dialog "",33
+		if (stat==0) {return}
+		wireColor = (ginfo_r<<16)|(ginfo_g<<8)|ginfo_b
+		repeat 3 : buf=str((wireColor>>(8*(2-cnt)))&0xFF) : sendmsg hwndInput@(IDINPUT_chWireColor_R+cnt), WM_SETTEXT, 0, varptr(buf) : loop
+		return
+	*int_button_chWireColor_chg
+		if (existObj(idObj)==FALSE) {gsel WID_MAIN : dialog "その配線はもう存在しません",1,appName : gosub *int_button_chWireColor_cancel}
+		if (getObjType@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {gsel WID_MAIN : dialog "その配線はもう存在しません",1,appName : gosub *int_button_chWireColor_cancel}
+		wireColor=0 : repeat 3 : wireColor<<=8 : wireColor|=int(bufInput@(IDINPUT_chWireColor_R+cnt)) : loop
+		udrd_progress : setWireColor@OBJ OBJs@(idObj), wireColor : flg_projModNotSaved@=TRUE
+		drawGPCandRegion : refreshFrontAndBackWnd : arrangeStatBarStat : gosub *int_button_chWireColor_cancel
+		return
+	*int_button_chWireColor_cancel
+		closeLsideWnd : gsel WID_CHWIRECOLOR,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+		return
+#global

@@ -1,0 +1,192 @@
+/*
+	undo,redo マネージャ
+	
+	[方針]
+		　OBJsとその他の単純な変数さえundo,redoできればいい。幸いにしてOBJsは小さいデータであるので丸ごとバックアップしてしまう。
+	
+		　バックアップにはスタック方式を採用する。undoスタックとredoスタックを用意し、サイズは同じとする。
+		undoするときは現在のOBJsをredoスタックに積み、undoスタックから降ろしたOBJsで現在のOBJsを上書きする。redoはこの逆で、
+		現在のOBJsをundoスタックに積み、redoスタックから降ろしたOBJsで現在のOBJsを上書きする。
+	
+		　しかしながら newmod が配列内の任意の番地に対して実行できないため、下のコードに見るように番地は別の配列で管理する。
+*/
+
+#module udrdStackElement OBJs, projProp_int, projProp_str, flg_projModNotSaved	//undo,redoスタック要素
+	id=0 : xx=0 : yy=0 : vals=0	//未初期化変数警告回避
+	
+	#modinit
+		mref id,2
+		return id
+		
+	#modfunc local setMembers array OBJs_, array projProp_int_, array projProp_str_, int flg_projModNotSaved_
+		/* OBJs */
+			newmod OBJs,OBJ : foreach OBJs : delmod OBJs(cnt) : loop
+			cntObjs=0	//処理済みのオブジェクトの個数
+			cntStuff=0	//オブジェクトIDを揃えるために詰め物が必要だが、ゴミを詰めた数。
+			idStuffList=0//↑に対応する詰めた箇所のリスト
+			repeat
+				if (cntObjs==projProp_int_(IDX_PROJPROP_INT_numObjs)) {break}
+				if (varuse(OBJs_(cnt))) {
+					idObj=cnt
+					/* 情報吸い出し */
+						objtype=getObjtype@OBJ(OBJs_(idObj))
+						namePMF=getNamePMF@OBJ(OBJs_(idObj)) : namePmodel=getNamePmodel@OBJ(OBJs_(idObj))
+						idPMFDat=getIdPMFDat@OBJ(OBJs_(idObj)) : idPMDat=getIdPMDat@OBJ(OBJs_(idObj))
+						deg=getDeg@OBJ(OBJs_(idObj)) : getxxyy@OBJ OBJs_(idObj), xx,yy
+						xx_dbl=getxx_dbl@OBJ(OBJs_(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs_(idObj))
+						zOrder=getZOrder@OBJ(OBJs_(idObj)) : side=getSIde@OBJ(OBJs_(idObj)) : shielded=getShielded@OBJ(OBJs_(idObj))
+						wireColor=getWireColor@OBJ(OBJs_(idObj)) : bgColor=getbgColor@OBJ(OBJs_(idObj)) : chrColor=getchrColor@OBJ(OBJs_(idObj))
+						ann=getAnn@OBJ(OBJs_(idObj)) : getVals@OBJ OBJs_(idObj), vals : comment=getComment@OBJ(OBJs_(idObj))
+					/* 複製 */
+						newmod OBJs,OBJ
+						setObjtype@OBJ OBJs(idObj), objtype
+						setNamePMF@OBJ OBJs(idObj), namePMF : setNamePmodel@OBJ OBJs(idObj), namePmodel
+						setIdPMFDat@OBJ OBJs(idObj), idPMFDat : setIdPMDat@OBJ OBJs(idObj), idPMDat
+						setDeg@OBJ OBJs(idObj), deg : setxxyy@OBJ OBJs(idObj), xx,yy
+						setxx_dbl@OBJ OBJs(idObj), xx_dbl : setyy_dbl@OBJ OBJs(idObj), yy_dbl
+						setZOrder@OBJ OBJs(idObj), zOrder : setSide@OBJ OBJs(idObj), side : setShielded@OBJ OBJs(idObj), shielded
+						setWireColor@OBJ OBJs(idObj), wireColor : setbgColor@OBJ OBJs(idObj), bgColor : setchrColor@OBJ OBJs(idObj), chrColor
+						setAnn@OBJ OBJs(idObj), ann : setVals@OBJ OBJs(idObj), vals : setComment@OBJ OBJs(idObj), comment
+					cntObjs++
+				} else : newmod OBJs,OBJ : idStuffList(cntStuff)=cnt : cntStuff++		//オブジェクトIDを揃えるために詰めものをする
+			loop
+			repeat cntStuff : delmod OBJs(idStuffList(cnt)) : loop	//詰め物を削除
+		repeat IDX_PROJPROP_INT_TERM : projProp_int(cnt)=projProp_int_(cnt) : loop
+		repeat IDX_PROJPROP_STR_TERM : projProp_str(cnt)=projProp_str_(cnt) : loop
+		flg_projModNotSaved=flg_projModNotSaved_
+		return
+	
+	#modfunc local outMembers array OBJs_, array projProp_int_, array projProp_str_, var flg_projModNotSaved_
+		/* OBJs */
+			newmod OBJs_,OBJ : foreach OBJs_ : delmod OBJs_(cnt) : loop
+			cntObjs=0
+			cntStuff=0
+			idStuffList=0
+			repeat
+				if (cntObjs==projProp_int(IDX_PROJPROP_INT_numObjs)) {break}
+				if (varuse(OBJs(cnt))==1) {
+					idObj=cnt
+					/* 情報吸い出し */
+						objtype=getObjtype@OBJ(OBJs(idObj))
+						namePMF=getNamePMF@OBJ(OBJs(idObj)) : namePmodel=getNamePmodel@OBJ(OBJs(idObj))
+						idPMFDat=getIdPMFDat@OBJ(OBJs(idObj)) : idPMDat=getIdPMDat@OBJ(OBJs(idObj))
+						deg=getDeg@OBJ(OBJs(idObj)) : getxxyy@OBJ OBJs(idObj), xx,yy
+						xx_dbl=getxx_dbl@OBJ(OBJs(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs(idObj))
+						xx_dbl=getxx_dbl@OBJ(OBJs(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs(idObj))
+						zOrder=getZOrder@OBJ(OBJs(idObj)) : side=getSIde@OBJ(OBJs(idObj)) : shielded=getShielded@OBJ(OBJs(idObj))
+						wireColor=getWireColor@OBJ(OBJs(idObj)) : bgColor=getbgColor@OBJ(OBJs(idObj)) : chrColor=getchrColor@OBJ(OBJs(idObj))
+						ann=getAnn@OBJ(OBJs(idObj)) : getVals@OBJ OBJs(idObj), vals : comment=getComment@OBJ(OBJs(idObj))
+					/* 複製 */
+						newmod OBJs_,OBJ
+						setObjtype@OBJ OBJs_(idObj), objtype
+						setNamePMF@OBJ OBJs_(idObj), namePMF : setNamePmodel@OBJ OBJs_(idObj), namePmodel
+						setIdPMFDat@OBJ OBJs_(idObj), idPMFDat : setIdPMDat@OBJ OBJs_(idObj), idPMDat
+						setDeg@OBJ OBJs_(idObj), deg : setxxyy@OBJ OBJs_(idObj), xx,yy
+						setxx_dbl@OBJ OBJs_(idObj), xx_dbl : setyy_dbl@OBJ OBJs_(idObj), yy_dbl
+						setZOrder@OBJ OBJs_(idObj), zOrder : setSide@OBJ OBJs_(idObj), side : setShielded@OBJ OBJs_(idObj), shielded
+						setWireColor@OBJ OBJs_(idObj), wireColor : setbgColor@OBJ OBJs_(idObj), bgColor : setchrColor@OBJ OBJs_(idObj), chrColor
+						setAnn@OBJ OBJs_(idObj), ann : setVals@OBJ OBJs_(idObj), vals : setComment@OBJ OBJs_(idObj), comment
+					cntObjs++
+				} else : newmod OBJs_,OBJ : idStuffList(cntStuff)=cnt : cntStuff++		//オブジェクトIDを揃えるために詰めものをする
+			loop
+			repeat cntStuff : delmod OBJs_(idStuffList(cnt)) : loop	//詰め物を削除
+		repeat IDX_PROJPROP_INT_TERM : projProp_int_(cnt)=projProp_int(cnt) : loop
+		repeat IDX_PROJPROP_STR_TERM : projProp_str_(cnt)=projProp_str(cnt) : loop
+		flg_projModNotSaved_=flg_projModNotSaved
+		return
+#global
+
+#module udrd	//undo,redo処理
+	#define SIZE_UNDOSTACK	16
+	#define SIZE_REDOSTACK	SIZE_UNDOSTACK
+	
+	#deffunc initUndoRedo	//変数初期化。起動時に一度だけ。
+		undoStack=0 : newmod undoStack,udrdStackElement : delmod undoStack(0) : numUndoStack=0	//undoスタック
+		redoStack=0 : newmod redoStack,udrdStackElement : delmod redoStack(0) : numRedoStack=0	//redoスタック
+		dim idUndoStackElements,SIZE_UNDOSTACK	//undoスタック要素のIDリスト。古い順に並んでいる。
+		dim idRedoStackElements,SIZE_REDOSTACK	//redoスタック要素のIDリスト。新しい順に並んでいる。
+		OBJs=0 : xx=0 : yy=0 : vals=0
+		return
+	#defcfunc canUndo	//undoできるか
+		return (numUndoStack)
+	#defcfunc canRedo	//redoできるか
+		return (numRedoStack)
+	#deffunc clearUndoStack	//undoスタックのクリア
+		foreach undoStack : delmod undoStack(cnt) : loop : numUndoStack=0
+		return
+	#deffunc clearRedoStack	//redoスタックのクリア
+		foreach redoStack : delmod redoStack(cnt) : loop : numRedoStack=0
+		return
+	#deffunc udrd_forgetAll	//undo,redo両スタックのクリア
+		clearUndoStack : clearRedoStack
+		return
+	#deffunc local pushUndoStack array OBJs_, array projProp_int_, array projProp_str_, int flg_projModNotSaved_	//undoスタックに積む
+		if (numUndoStack==SIZE_UNDOSTACK) {delmod undoStack(idUndoStackElements(0)) : memcpy idUndoStackElements,idUndoStackElements, 4*(SIZE_UNDOSTACK-1), 0,4 : numUndoStack--}	//既に一杯の場合は一番古い要素を削除
+		newmod undoStack, udrdStackElement : idElement=stat : setMembers@udrdStackElement undoStack(idElement), OBJs_, projProp_int_, projProp_str_, flg_projModNotSaved_
+		idUndoStackElements(numUndoStack)=idElement : numUndoStack++
+		return
+	#deffunc local popUndoStack array OBJs_, array projProp_int_, array projProp_str_, var flg_projModNotSaved_	//undoスタックから降ろす
+		assertEx (numUndoStack>0)
+		idElement=idUndoStackElements(numUndoStack-1)
+		outMembers@udrdStackElement undoStack(idElement), OBJs_, projProp_int_, projProp_str_, flg_projModNotSaved_ : delmod undoStack(idElement) : numUndoStack--
+		return
+	#deffunc local pushRedoStack array OBJs_, array projProp_int_, array projProp_str_, int flg_projModNotSaved_	//redoスタックに積む
+		if (numRedoStack==SIZE_REDOSTACK) {delmod redoStack(idRedoStackElements(0)) : memcpy idRedoStackElements,idRedoStackElements, 4*(SIZE_REDOSTACK-1), 0,4 : numRedoStack--}	//既に一杯の場合は一番新しい要素を削除
+		newmod redoStack,udrdStackElement : idElement=stat : setMembers@udrdStackElement redoStack(numRedoStack), OBJs_, projProp_int_, projProp_str_, flg_projModNotSaved_
+		idRedoStackElements(numRedoStack)=idElement : numRedoStack++
+		return
+	#deffunc local popRedoStack array OBJs_, array projProp_int_, array projProp_str_, var flg_projModNotSaved_	//redoスタックから降ろす
+		assertEx (numRedoStack>0)
+		idElement=idRedoStackElements(numRedoStack-1)
+		outMembers@udrdStackElement redoStack(idElement), OBJs_, projProp_int_, projProp_str_, flg_projModNotSaved_ : delmod redoStack(numRedoStack-1) : numRedoStack--
+		return
+	#deffunc pushCurProjToUndoStack	//現在のプロジェクトをundoスタックに積む
+		pushUndoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@
+		return
+	#deffunc DeleteTopElementInUndoStack	//undoスタックのトップ要素を削除する
+		assertEx (numUndoStack>0)
+		delmod undoStack(idUndoStackElements(numUndoStack-1)) : numUndoStack--
+		return
+	#deffunc popUndoStackAndOverwriteCurProj	//undoスタックから1つ降ろして現在のプロジェクトを上書きする
+		popUndoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@ : buildHOLEsFromOBJs
+		return
+	#deffunc pushCurProjToRedoStack	//現在のプロジェクトをredoスタックに積む
+		pushRedoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@
+		return
+	#deffunc popRedoStackAndOverwriteCurProj	//redoスタックから1つ降ろして現在のプロジェクトを上書きする
+		popRedoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@ : buildHOLEsFromOBJs
+		return
+	#deffunc udrd_progress	//undo,redoでない通常操作が行われるとして、現在のプロジェクトをundoスタックに積んでredoスタックをクリアする。
+		pushCurProjToUndoStack : clearRedoStack
+		return
+	#deffunc undo
+		assertEx (canUndo())
+		pushRedoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@	//現在のプロジェクトをredoスタックに積む
+		popUndoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@	//undoスタックから1つ降ろして現在のプロジェクトを上書きする
+		buildHOLEsFromOBJs	//HOLEsを再構築
+		initGPCandRegionBuf numHole_xCurProj,numHole_yCurProj
+		drawGPCandRegion : refreshFrontAndBackWnd
+		arrangeMenuBarStat : arrangeStatBarStat
+		return 0
+	#deffunc redo
+		assertEx (canRedo())
+		pushUndoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@	//現在のプロジェクトをundoスタックに積む
+		popRedoStack OBJs@, projProp_int@, projProp_str@, flg_projModNotSaved@	//redoスタックから1つ降ろして現在のプロジェクトを上書きする
+		buildHOLEsFromOBJs	//HOLEsを再構築
+		initGPCandRegionBuf numHole_xCurProj,numHole_yCurProj
+		drawGPCandRegion : refreshFrontAndBackWnd
+		arrangeMenuBarStat : arrangeStatBarStat
+		return 0
+	#deffunc int_undo	//undo割り込み対応
+		assertEx (flg_projLoaded@)
+		assertEx (isReadOnlyCurProj==FALSE)
+		if (canUndo()==FALSE) {dialog "これ以上戻せません",1,appName : return}
+		undo
+		return
+	#deffunc int_redo	//redo割り込み対応
+		assertEx (flg_projLoaded@)
+		assertEx (isReadOnlyCurProj==FALSE)
+		if (canRedo()==FALSE) {dialog "これ以上やり直せません",1,appName : return}
+		redo
+	return
+#global

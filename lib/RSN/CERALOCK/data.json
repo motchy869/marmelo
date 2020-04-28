@@ -1,0 +1,7 @@
+{
+	"explanation":	"セラミック発振子。コンデンサ内蔵型。",
+	"numLeads":	3,
+	"rxLeads":	[1, 2],
+	"ryLeads":	[0, 0],
+	"posLeadInImg":	[4, 5]
+}

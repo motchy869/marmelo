@@ -1,0 +1,396 @@
+/*
+	回路図データファイル処理
+*/
+
+#module BDfile_load	//回路図データの読み込み
+	buf = 0 : rxLeads = 0 : ryLeads = 0
+
+	#defcfunc local canAccommodatePart int numHole_x_,int numHole_y_, int idPMFDat_,int idPMDat_, int deg_, int xx_,int yy_, local deg_rad, local x,local y, local flg_cannot	//指定した位置と角度で基板に収まるかどうか調べる
+		//引数は信頼する
+		deg_rad=deg2rad(deg_)
+		numLeads=getNumLeads@PMFDat(PMFDats@(idPMFDat_),idPMDat_) : dupRxyLeads@PMFDat PMFDats@(idPMFDat_),idPMDat_, rxLeads,ryLeads
+		if ((xx_<0)||(xx_>=numHole_x_)||(yy_<0)||(yy_>=numHole_y_)) {return FALSE}
+		flg_cannot=FALSE
+		repeat numLeads-1	//2番目以降のピン
+			x=xx_+round(cos(deg_rad)*rxLeads(cnt) - sin(deg_rad)*ryLeads(cnt)) : y=yy_+round(sin(deg_rad)*rxLeads(cnt) + cos(deg_rad)*ryLeads(cnt))
+			if ((x<0)||(x>=numHole_x_)||(y<0)||(y>=numHole_y_)) {flg_cannot=TRUE : break}
+		loop : if (flg_cannot) {return FALSE}
+		return TRUE
+
+	#deffunc loadBDdata var file_, var msg_, int flg_simu
+		/*
+			file_		: 回路図ファイルデータ
+			msg_		: メッセージ格納用変数
+			flg_simu	: 実際にロードせずにシミュレーションだけにするかどうか
+			
+			[stat]
+				LBDD_OK			: 成功
+				LBDD_BROKEN		: データが壊れている。msg_にメッセージが格納される。
+				LBDD_TOOOLD		: 古すぎ。msg_にmbdバージョンが文字列で格納される。
+				LBDD_TOONEW		: 新しすぎ。〃
+				LBDD_UNKNOWNPMF	: 未知のモデルファミリが使用されている。msg_にモデルファミリ名が格納される。
+				LBDD_UNKNOWNPM	: 未知の部品モデルが使用されているmsg_にモデル名が格納される。
+
+			方針: mbdデータの致命的な破損以外は無難に対応する
+		*/
+		if (flg_simu == FALSE) {assertEx (flg_projLoaded@ == FALSE)}
+		if (instr(file_, 0, "<body>") == 0 && instr(file_, 0, "mbdVer=1.0.0") > 0) {	//JSONを採用する前の時代
+			mbdVer_ = serializeVer(1,0,0)
+			mbdVer_str_ = "1.0.0"
+		} else {
+			jsonnkf@ "s", "s"
+			json = jsonOpen_f(file_)
+			json_fileInfo = jsonGetObj_f("fileInfo", json) : if (json_fileInfo == 0) {rc = LBDD_BROKEN : goto *errorReturn}
+			appName_ = jsonGets_f("appName", json_fileInfo, "*") : if (appName_ != appName) {rc = LBDD_BROKEN : goto *errorReturn}
+			mbdVer_str_ = jsonGets_f("mbdVer", json_fileInfo, "-1.-1.-1") : split mbdVer_str_, ".", buf : mbdVer_ = serializeVer(int(buf(0)),int(buf(1)),int(buf(2)))
+		}
+		if (mbdVer_ < MBDVER_DS) {msg_ = mbdVer_str_ : rc = LBDD_TOOOLD : goto *errorReturn}
+		if (mbdVer_ > MBDVER_DS) {msg_ = mbdVer_str_ : rc = LBDD_TOONEW : goto *errorReturn}
+
+		/* proj 階層 */
+			json_proj = jsonGetObj_f("proj", json) : if (json_proj == 0) {msg_="proj階層が無い" : rc = LBDD_BROKEN : goto *errorReturn}
+			/* statistics 階層 */
+				rc = LBDD_BROKEN
+				json_statistics = jsonGetObj_f("statistics", json_proj) : if (json_statistics == 0) {msg_="statistics階層が無い" : goto *errorReturn}
+				if (jsonGetIntArray@(buf, jsonGetObj_f("numHole", json_statistics)) != 2) {msg_="numHoleの値が異常" : goto *errorReturn}
+				numHole_x = buf(0) : numHole_y = buf(1) : if (numHole_x < 1 || numHole_y < 1) {msg_="numHoleが無いか、値が異常" : goto *errorReturn}
+				if (flg_simu == FALSE) {createNewProj numHole_x, numHole_y}
+				numParts = jsonGeti_f("numParts", json_statistics, -1) : if (numParts<0) {msg_="numPartsが無いか、値が異常" : goto *errorReturn}
+				numWires = jsonGeti_f("numWires", json_statistics, -1) : if (numWires<0) {msg_="numWiresが無いか、値が異常" : goto *errorReturn}
+				numCmtTags = jsonGeti_f("numCmtTags", json_statistics, -1) : if (numCmtTags<0) {msg_="numCmtTagsが無いか、値が異常" : goto *errorReturn}
+			/* properties 階層 */
+				json_properties = jsonGetObj_f("properties", json_proj) : if (json_properties == 0) {msg_="properties階層が無い" : goto *errorReturn}
+				if (flg_simu == FALSE) {
+					projProp_Str@(IDX_PROJPROP_STR_AUTHOR) = jsonGets_f("author", json_properties, "")
+					projProp_Str@(IDX_PROJPROP_STR_TITLE) = jsonGets_f("title", json_properties, "")
+					projProp_Str@(IDX_PROJPROP_STR_SUBTITLE) = jsonGets_f("subtitle", json_properties, "")
+					projProp_Str@(IDX_PROJPROP_STR_EXPLANATION) = jsonGets_f("explanation", json_properties, "")
+					projProp_int@(IDX_PROJPROP_INT_readOnly) = jsonGeti_f("read-only", json_properties, FALSE)
+				}
+			/* options 階層 */
+				json_options = jsonGetObj_f("options", json_proj) : if (json_options == 0) {msg_="options階層が無い" : goto *errorReturn}
+				if (flg_simu == FALSE) {
+					opt_front_showBackWires@ = jsonGeti_f("showBackWiresOnFrontWindow", json_options, FALSE)
+					opt_back_showFrontWires@ = jsonGeti_f("showFrontWiresOnBackWindow", json_options, FALSE)
+					opt_back_mirror@ = jsonGeti_f("mirrorModeOnBackWindow", json_options, FALSE)
+					opt_showCmtTags@ = jsonGeti_f("showCmtTags", json_options, FALSE)
+				}
+			/* parts 階層 */
+				if (numParts > 0) {
+					json_parts = jsonGetObj_f("parts", json_proj) : if (json_parts == 0) {msg_="parts階層が無い" : goto *errorReturn}
+					cntParts=0	//処理済み部品の数
+					dim arrayUsedList_zOrder, numParts	//zオーダー使用済みリスト。部品が割り当てられているzオーダーと等しい番地にはTRUEが、そうでない番地にはFALSEが書き込まれる。
+					dim listUsedAnnParts, numParts,2	//部品のidPMFDatとアノテーションの組。第2次元の0番地にはidPMFDat、1番地にはアノテーションが記録される。
+					rc = LBDD_OK
+					json_part = jsonNext_f(json_parts, 2)
+					repeat numParts
+						if (json_part == 0) {msg_ = "part"+str(cnt)+"が無い" : rc = LBDD_BROKEN : break}
+						namePMF = jsonGets_f("namePMF", json_part, "") : if (namePMF == "") {msg_ = "part"+str(cnt)+"のnamePMFが無い" : rc = LBDD_BROKEN : break}
+						idPMFDat = namePMF2idPMFDat(namePMF) : if (idPMFDat == -1) {rc = LBDD_UNKNOWNPMF : msg_ = namePMF : break}
+						namePmodel = jsonGets_f("namePmodel", json_part, "") : if (namePmodel == "") {msg_ = "part"+str(cnt)+"のnamePmodelが無い" : rc = LBDD_BROKEN : break}
+						idPMDat=namePmodel2idPMDat@PMFDat(PMFDats@(idPMFDat),namePmodel) : if (idPMDat==-1) {rc=IBDF_UNKNOWNPM : msg_=namePMF+"/"+namePModel : break}
+						deg = jsonGeti_f("deg", json_part, -1) : if (deg\90 != 0) {msg_ = "part"+str(cnt)+"のdegが無いか、値が異常" : rc = LBDD_BROKEN : break}
+
+						if (jsonGetIntArray(buf, jsonGetObj_f("pos", json_part)) != 2) {msg_ = "part"+str(cnt)+"のposが無いか、値が異常" : rc = LBDD_BROKEN : break}
+						xx=int(buf(0)) : yy=int(buf(1)) : if (canAccommodatePart(numHole_x,numHole_y, idPMFDat,idPMDat, deg, xx,yy)==FALSE) {msg_="part"+str(cnt)+"のposの値が異常" : rc=LBDD_BROKEN : break}
+
+						if (flg_simu == FALSE) {newPart idPMFDat,idPMDat, deg, xx,yy : idObj=stat}
+
+						zOrder = jsonGeti_f("zOrder", json_part, -1)
+						if ((zOrder<0)||(zOrder>=numParts)) {msg_="part"+str(cnt)+"のzOrderが無いか、値が異常" : rc=LBDD_BROKEN : break}
+						if (arrayUsedList_zOrder(zOrder)) {msg_="part"+str(cnt)+"のzOrderが重複" : rc=LBDD_BROKEN : break} : arrayUsedList_zOrder(zOrder)=TRUE
+						if (flg_simu == FALSE) {setZOrder@OBJ OBJs@(idObj), zOrder}
+
+						/* アノテーション */
+							ann = jsonGeti_f("annotation", json_part, -1) : if (ann<0) {msg_="part"+str(cnt)+"のannotationが無いか、値が異常" : rc=LBDD_BROKEN : break}
+							flg_overlap=FALSE : repeat cntParts : if ((listUsedAnnParts(cnt,0)==idPMFDat)&&(listUsedAnnParts(cnt,1)==ann)) {flg_overlap=TRUE : break} : loop
+							if (flg_overlap) {msg_="part"+str(cnt)+"のアノテーションが重複" : rc=LBDD_BROKEN : break}
+							if (flg_simu == FALSE) {setAnn@OBJ OBJs@(idObj), ann}
+							listUsedAnnParts(cntParts,0)=idPMFDat : listUsedAnnParts(cntParts,1)=ann
+
+						if (jsonGetStrArray@(buf, jsonGetObj_f("vals", json_part)) != 3) {msg_ = "part"+str(cnt)+"のvalsが無いか、値が異常" : rc = LBDD_BROKEN : break}
+						if (flg_simu == FALSE) {setVals@OBJ OBJs@(idObj), buf}
+
+						if (flg_simu == FALSE) {setComment@OBJ OBJs@(idObj), jsonGets_f("comment", json_part, "")}
+						
+						cntParts++
+						json_part = jsonNext_f(json_part, 0)
+					loop
+					if (rc != LBDD_OK) {goto *errorReturn}
+				}
+			/* wires 階層 */
+				rc = LBDD_BROKEN
+				if (numWires > 0) {
+					json_wires = jsonGetObj_f("wires", json_proj) : if (json_wires == 0) {msg_="wires階層が無い" : goto *errorReturn}
+					cntWires=0	//処理済み配線の数
+					dim listUsedAnnWires, numWires	//配線のアノテーションのリスト
+					flg_broken = FALSE
+					json_wire = jsonNext_f(json_wires, 2)
+					repeat numWires
+						if (json_wire == 0) {msg_="wire"+str(cnt)+"が無い" : flg_broken = TRUE : break}
+						buf = jsonGets_f("side", json_wire, "")
+						switch buf
+							case "front": side = SIDE_FRONT : swbreak
+							case "back" : side = SIDE_BACK : swbreak
+							default: msg_="part"+str(cnt)+"のsideが無いか、値が異常" : flg_broken = TRUE : break
+						swend
+
+						shielded = jsonGeti_f("shielded", json_wire, FALSE)
+
+						if (jsonGetIntArray(buf, jsonGetObj_f("pos", json_wire)) != 2) {msg_ = "part"+str(cnt)+"のposが無いか、値が異常" : flg_broken = TRUE : break}
+						xx=int(buf(0)) : yy=int(buf(1)) : if ((xx<0)||(xx>numHole_x-1)||(yy<0)||(yy>numHole_y-1)) {msg_="posが無いか、値が異常" : flg_broken = TRUE : break}
+
+						if (jsonGetIntArray(buf, jsonGetObj_f("pos2", json_wire)) != 2) {msg_ = "part"+str(cnt)+"のpos2が無いか、値が異常" : flg_broken = TRUE : break}
+						xx(1)=int(buf(0)) : yy(1)=int(buf(1)) : if ((xx(1)<0)||(xx(1)>numHole_x-1)||(yy(1)<0)||(yy(1)>numHole_y-1) || (xx(0) == xx(1) && yy(0) == yy(1))) {msg_="part"+str(cnt)+"のpos2が無いか、値が異常" : flg_broken = TRUE : break}
+
+						wireColor = hex2int(jsonGets_f("color", json_wire, "0x000000"))
+
+						if (flg_simu == FALSE) {createWire side, shielded, wireColor, xx,yy : idObj=stat}
+						
+						/* アノテーション */
+							ann = jsonGeti_f("annotation", json_wire, -1) : if (ann<0) {msg_="part"+str(cnt)+"のannが無いか、値が異常" : flg_broken = TRUE : break}
+							flg_overlap=FALSE : repeat cntWires : if (listUsedAnnWires(cnt)==ann) {flg_overlap=TRUE : break} : loop
+							if (flg_overlap) {msg_ = "part"+str(cnt)+"のアノテーションが重複" : flg_broken = TRUE : break}
+							if (flg_simu == FALSE) {setAnn@OBJ OBJs@(idObj), ann}
+							listUsedAnnWires(cntWires)=ann
+
+						if (jsonGetStrArray(buf, jsonGetObj_f("vals", json_wire)) != 3) {msg_ = "part"+str(cnt)+"のvalsが無いか、値が異常" : flg_broken = TRUE : break}
+						if (flg_simu == FALSE) {setVals@OBJ OBJs@(idObj), buf}
+
+						if (flg_simu == FALSE) {setComment@OBJ OBJs@(idObj), jsonGets_f("comment", json_wire, "")}
+							
+						cntWires++
+						json_wire = jsonNext_f(json_wire, 0)
+					loop
+					if (flg_broken) {goto *errorReturn}
+				}
+			/* cmtTags 階層 */
+				if (numCmtTags > 0) {
+					json_cmtTags = jsonGetObj_f("cmtTags", json_proj) : if (json_cmtTags == 0) {msg_="cmtTags階層が無い" : goto *errorReturn}
+					cntCmtTags=0	//処理済みのコメントタグの数
+					dim listUsedAnnCmtTags, numCmtTags	//コメントタグのアノテーションのリスト
+					json_cmtTag = jsonNext_f(json_cmtTags, 2)
+					repeat numCmtTags
+						if (json_cmtTag == 0) {msg_="cmtTag"+str(cnt)+"が無い" : flg_broken = TRUE : break}
+						
+						buf = jsonGets_f("side", json_cmtTag, "")
+						switch buf
+							case "front": side = SIDE_FRONT : swbreak
+							case "back" : side = SIDE_BACK : swbreak
+							default: msg_="part"+str(cnt)+"のsideが無いか、値が異常" : flg_broken = TRUE : break
+						swend
+
+						if (jsonGetStrArray(buf, jsonGetObj_f("xyb", json_cmtTag)) != 2) {msg_ = "part"+str(cnt)+"のxybが無いか、値が異常" : flg_broken = TRUE : break}
+						xb=double(buf(0)) : yb=double(buf(1))
+						if (xb < xTLBoardSurface || xBRBoardSurface < xb || yb < yTLBoardSurface || yBRBoardSurface < yb) {msg_ = "part"+str(cnt)+"のxybの値が異常" : flg_broken = TRUE : break}
+
+						bgColor = hex2int(jsonGets_f("bgColor", json_cmtTag, "0x000000"))
+						chrColor = hex2int(jsonGets_f("chrColor", json_cmtTag, "0xFFFFFF"))
+
+						/* アノテーション */
+							ann = jsonGeti_f("annotation", json_cmtTag, -1) : if (ann < 0) {msg_ = "part"+str(cnt)+"のannが無いか、値が異常" : flg_broken = TRUE : break}
+							flg_overlap=FALSE : repeat cntCmtTags : if (listUsedAnnCmtTags(cnt)==ann) {flg_overlap=TRUE : break} : loop
+							if (flg_overlap) {msg_="part"+str(cnt)+"のアノテーションが重複" : flg_broken = TRUE : break}
+							listUsedAnnCmtTags(cntCmtTags) = ann
+
+						if (flg_simu == FALSE) {
+							newCmtTag side, xb,yb,  bgColor,chrColor, jsonGets_f("comment", json_cmtTag, "") : idObj=stat
+							setAnn@OBJ OBJs@(idObj), ann
+						}
+
+						if (jsonGetStrArray(buf, jsonGetObj_f("vals", json_cmtTag)) != 3) {msg_ = "part"+str(cnt)+"のvalsが無いか、値が異常" : flg_broken = TRUE : break}
+						if (flg_simu == FALSE) {setVals@OBJ OBJs@(idObj), buf}
+						
+						cntCmtTags++
+						json_cmtTag = jsonNext_f(json_cmtTag, 0)
+					loop
+					if (flg_broken) {goto *errorReturn}
+				}
+				
+		jsonclose@
+		return LBDD_OK
+
+		*errorReturn
+			jsonclose@
+			if (flg_simu == FALSE && flg_projLoaded@) {unLoadProj}
+			return rc
+#global
+
+#module BDfile_mergeBoard	//基板の統合
+	buf = ""
+	
+	#deffunc local expandExistingBoard int xPaste_,int yPaste_, int numHole_x_guest_, int numHole_y_guest_	//必要があれば既存の基板を拡張 (mergeBoard ルーチンから呼ばれる)
+		flg_need_slide = FALSE : flg_need_expandHOLEs = FALSE
+		numHole_x_need = numHole_xCurProj : numHole_y_need = numHole_yCurProj
+		dxSlide = 0 : dySlide = 0
+		if (xPaste_ >= 0) {
+			if (xPaste_ + numHole_x_guest_ > numHole_xCurProj) {flg_need_expandHOLEs = TRUE : numHole_x_need = xPaste_ + numHole_x_guest_}
+		} else {
+			flg_need_slide = TRUE : dxSlide = -xPaste_
+			flg_need_expandHOLEs = TRUE : if (xPaste_ + numHole_x_guest_ > numHole_xCurProj) {numHole_x_need = numHole_x_guest_} else {numHole_x_need = numHole_xCurProj-xPaste_}
+		}
+		if (yPaste_ >= 0) {
+			if (yPaste_ + numHole_y_guest_ > numHole_yCurProj) {numHole_y_need = yPaste_ + numHole_y_guest_}
+		} else {
+			flg_need_slide = TRUE : dySlide = -yPaste_
+			flg_need_expandHOLEs = TRUE : if (yPaste_ + numHole_y_guest_ > numHole_yCurProj) {numHole_y_need = numHole_y_guest_} else {numHole_y_need = numHole_yCurProj - yPaste_}
+		}
+		if (flg_need_expandHOLEs = TRUE) {resizeBoard numHole_x_need, numHole_y_need}
+		if (flg_need_slide = TRUE) {slideObjs dxSlide, dySlide}
+		return
+	
+	#deffunc mergeBoard var mbd_, int xPaste_, int yPaste_	//別の基板を読み込んで統合
+		/*
+			mbd_ : 検査済みmbdデータ
+			xPaste_,yPaste_ : 貼り付け位置(ホール座標)
+		*/
+		jsonnkf@ "s", "s"
+		json = jsonOpen_f(mbd_)
+		json_proj = jsonGetObj_f("proj", json)
+		/* statistics 階層 */
+			json_statistics = jsonGetObj_f("statistics", json_proj)
+			trash = jsonGetIntArray@(buf, jsonGetObj_f("numHole", json_statistics)) : numHole_x_guest=int(buf(0)) : numHole_y_guest=int(buf(1))
+			numParts_guest = jsonGeti_f("numParts", json_statistics, -1) : numWires_guest = jsonGeti_f("numWires", json_statistics, -1) : numCmtTags_guest = jsonGeti_f("numCmtTags", json_statistics, -1)
+			expandExistingBoard xPaste_, yPaste_, numHole_x_guest, numHole_y_guest : xOffset_newObjs=limit(xPaste_,0,MAX_INT@) : yOffset_newObjs=limit(yPaste_,0,MAX_INT@)
+		/* parts 階層 */
+			if (numParts_guest > 0) {
+				json_parts = jsonGetObj_f("parts", json_proj)
+				json_part = jsonNext_f(json_parts, 2)
+				repeat numParts_guest
+					namePMF = jsonGets_f("namePMF", json_part, "") : idPMFDat = namePMF2idPMFDat(namePMF)
+					namePmodel = jsonGets_f("namePmodel", json_part, "") : idPMDat = namePmodel2idPMDat@PMFDat(PMFDats@(idPMFDat),namePmodel)
+					deg = jsonGeti_f("deg", json_part, -1)
+					trash = jsonGetIntArray(buf, jsonGetObj_f("pos", json_part)) : xx=xOffset_newObjs+int(buf(0)) : yy=yOffset_newObjs+int(buf(1))
+					newPart idPMFDat,idPMDat, deg, xx,yy : idObj=stat
+					trash = jsonGetStrArray@(buf, jsonGetObj_f("vals", json_part)) : setVals@OBJ OBJs@(idObj), buf
+					setComment@OBJ OBJs@(idObj), jsonGets_f("comment", json_part, "")
+					json_part = jsonNext_f(json_part, 0)
+				loop
+			}
+		/* wires 階層 */
+			if (numWires_guest > 0) {
+				json_wires = jsonGetObj_f("wires", json_proj)
+				json_wire = jsonNext_f(json_wires, 2)
+				repeat numWires_guest
+					if (jsonGets_f("side", json_wire, "") == "front") {side = SIDE_FRONT} else {side = SIDE_BACK}
+					shielded = jsonGeti_f("shielded", json_wire, FALSE)
+					trash = jsonGetIntArray(buf, jsonGetObj_f("pos", json_wire)) : xx = xOffset_newObjs + int(buf(0)) : yy = yOffset_newObjs + int(buf(1))
+					trash = jsonGetIntArray(buf, jsonGetObj_f("pos2", json_wire)) : xx(1) = xOffset_newObjs + int(buf(0)) : yy(1) = yOffset_newObjs + int(buf(1))
+					wireColor = hex2int(jsonGets_f("color", json_wire, "0x000000"))
+					createWire side, shielded, wireColor, xx,yy : idObj=stat
+					trash = jsonGetStrArray@(buf, jsonGetObj_f("vals", json_wire)) : setVals@OBJ OBJs@(idObj), buf
+					setComment@OBJ OBJs@(idObj), jsonGets_f("comment", json_wire, "")
+					json_wire = jsonNext_f(json_wire, 0)
+				loop
+			}
+		/* cmtTags 階層 */
+			if (numCmtTags_guest > 0) {
+				json_cmtTags = jsonGetObj_f("cmtTags", json_proj)
+				json_cmtTag = jsonNext_f(json_cmtTags, 2)
+				repeat numCmtTags_guest
+					if (jsonGets_f("side", json_cmtTag, "") == "front") {side = SIDE_FRONT} else {side = SIDE_BACK}
+					trash = jsonGetStrArray(buf, jsonGetObj_f("xyb", json_cmtTag)) : xb=double(buf(0))+xOffset_newObjs : yb=double(buf(1))+yOffset_newObjs
+					bgColor = hex2int(jsonGets_f("bgColor", json_cmtTag, "0x000000"))
+					chrColor = hex2int(jsonGets_f("chrColor", json_cmtTag, "0xFFFFFF"))
+					newCmtTag side, xb,yb,  bgColor,chrColor, jsonGets_f("comment", json_cmtTag, "") : idObj=stat
+					trash = jsonGetStrArray@(buf, jsonGetObj_f("vals", json_cmtTag)) : setVals@OBJ OBJs@(idObj), buf
+					json_cmtTag = jsonNext_f(json_cmtTag, 0)
+				loop
+			}
+		jsonclose@
+		return
+#global
+
+#module BDfile_save	//回路図ファイルの保存処理
+	xx=0 : yy=0 : vals=""	//未初期化変数警告回避
+
+	#deffunc saveBDfile str path_
+		assertEx (flg_projLoaded@)
+		jsonnkf@ "s", "s"
+		file = "{}" : json = jsonOpen_f(file)
+		/* fileInfo 階層 */
+			json_fileIinfo = jsonNewObj_f(json, "fileInfo")
+			jsonputs@ json_fileIinfo, "appName", appName
+			jsonputs@ json_fileIinfo, "mbdVer", MBDVER_DS_STR@
+		/*proj 階層*/
+			json_proj = jsonNewObj_f(json, "proj")
+			/* properties 階層 */
+				json_properties = jsonNewObj_f(json_proj, "properties")
+				jsonputs@ json_properties, "author", projProp_Str@(IDX_PROJPROP_STR_AUTHOR)
+				jsonputs@ json_properties, "title", projProp_Str@(IDX_PROJPROP_STR_TITLE)
+				jsonputs@ json_properties, "subtitle", projProp_Str@(IDX_PROJPROP_STR_SUBTITLE)
+				jsonputs@ json_properties, "explanation", projProp_Str@(IDX_PROJPROP_STR_EXPLANATION)
+				jsonputi@ json_properties, "read-only", projProp_int@(IDX_PROJPROP_INT_readOnly), 1
+			/* statistics階層 */
+				json_statistics = jsonNewObj_f(json_proj, "statistics")
+				json_numHole = jsonNewArray(json_statistics, "numHole") : jsonputi@ json_numHole, "", numHole_xCurProj : jsonputi@ json_numHole, "", numHole_yCurProj
+				jsonputi@ json_statistics, "numParts", numPartsCurProj
+				jsonputi@ json_statistics, "numWires", numWiresCurProj
+				jsonputi@ json_statistics, "numCmtTags", numCmtTagsCurProj
+			/* options 階層 */
+				json_options = jsonNewObj_f(json_proj, "options")
+				jsonputi@ json_options, "showBackWiresOnFrontWindow", opt_front_showBackWires@, 1
+				jsonputi@ json_options, "showFrontWiresOnBackWindow", opt_back_showFrontWires@, 1
+				jsonputi@ json_options, "mirrorModeOnBackWindow", opt_back_mirror@, 1
+				jsonputi@ json_options, "showCmtTags", opt_showCmtTags@, 1
+			/* parts 階層 */
+				json_parts = jsonNewArray(json_proj, "parts")
+				if (numPartsCurProj > 0) {
+					cntParts = 0
+					foreach OBJs@
+						idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_PART) {continue}
+						json_part = jsonNewObj_f(json_parts, str(cnt))
+						jsonputs@ json_part, "namePMF", getNamePMF@OBJ(OBJs@(idObj))
+						jsonputs@ json_part, "namePmodel", getNamePModel@OBJ(OBJs@(idObj))
+						jsonputi@ json_part, "deg", getDeg@OBJ(OBJs@(idObj))
+						json_pos = jsonNewArray(json_part, "pos") : getxxyy@OBJ OBJs@(idObj), xx,yy : jsonputi@ json_pos, "", xx : jsonputi@ json_pos, "", yy
+						jsonputi@ json_part, "zOrder", getZOrder@OBJ(OBJs@(idObj))
+						jsonputi@ json_part, "annotation", getAnn@OBJ(OBJs@(idObj))
+						getVals@OBJ OBJs@(idObj), vals : json_vals = jsonNewArray(json_part, "vals") : repeat 3 : jsonputs@ json_vals, "", vals(cnt) : loop
+						jsonputs@ json_part, "comment", getComment@OBJ(OBJs@(idObj))
+						cntParts++
+					loop
+					logmes "----------"
+				}
+			/* wires 階層 */
+				json_wires = jsonNewArray(json_proj, "wires")
+				if (numWiresCurProj>0) {
+					cntWires=0
+					foreach OBJs@
+						idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {continue}
+						json_wire = jsonNewObj_f(json_wires, str(cnt))
+						if (getSide@OBJ(OBJs@(idObj))==WIRESIDE_FRONT) {buf="front"} else {buf="back"} : jsonputs@ json_wire, "side", buf
+						jsonputi@ json_wire, "shielded", getShielded@OBJ(OBJs@(idObj)), 1
+						getxxyy@OBJ OBJs@(idObj), xx,yy
+						json_pos = jsonNewArray(json_wire, "pos") : jsonputi@ json_pos, "", xx(0) : jsonputi@ json_pos, "", yy(0)
+						json_pos2 = jsonNewArray(json_wire, "pos2") : jsonputi@ json_pos2, "", xx(1) : jsonputi@ json_pos2, "", yy(1)
+						jsonputs@ json_wire, "color", "0x"+strf("%X",getWireColor@OBJ(OBJs@(idObj)))
+						jsonputi@ json_wire, "annotation", getAnn@OBJ(OBJs@(idObj))
+						getVals@OBJ OBJs@(idObj), vals : json_vals = jsonNewArray(json_wire, "vals") : repeat 3 : jsonputs@ json_vals, "", vals(cnt) : loop
+						jsonputs@ json_wire, "comment", getComment@OBJ(OBJs@(idObj))
+						cntWires++
+					loop
+				}
+			/* cmtTags セクション */
+				json_cmtTags = jsonNewArray(json_proj, "cmtTags")
+				if (numCmtTagsCurProj>0) {
+					cntCmtTags=0
+					foreach Objs@
+						idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_CMTTAG) {continue}
+						json_cmtTag = jsonNewObj_f(json_cmtTags, str(cnt))
+						if (getSide@OBJ(OBJs@(idObj))==SIDE_FRONT) {buf="front"} else {buf="back"} : jsonputs@ json_cmtTag, "side", buf
+						xx_dbl=getxx_dbl@OBJ(OBJs@(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj)) : json_xyb = jsonNewArray(json_cmtTag, "xyb") : jsonputs@ json_xyb, "", str(xx_dbl) : jsonputs@ json_xyb, "", str(yy_dbl)
+						jsonputs@ json_cmtTag, "bgColor", "0x"+strf("%X",getbgColor@OBJ(OBJs@(idObj)))
+						jsonputs@ json_cmtTag, "chrColor", "0x"+strf("%X",getchrColor@OBJ(OBJs@(idObj)))
+						jsonputi@ json_cmtTag, "annotation", getAnn@OBJ(OBJs@(idObj))
+						getVals@OBJ OBJs@(idObj), vals : json_vals = jsonNewArray(json_cmtTag, "vals") : repeat 3 : jsonputs@ json_vals, "", vals(cnt) : loop
+						jsonputs@ json_cmtTag, "comment", getComment@OBJ(OBJs@(idObj))
+						cntCmtTags++
+					loop
+				}
+
+		jsonout@ file, json
+		jsonclose@
+		notesel file : notesave path_
+		return
+#global

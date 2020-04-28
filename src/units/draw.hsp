@@ -1,0 +1,278 @@
+/*
+	描画担当
+*/
+
+/*
+	リージョンバッファは背景色を白とし、部品のリージョンはオブジェクトID(24bit以内)を3分割してRGBコードに変換したもので描画する。
+*/
+
+#module draw
+	zOrderedPartObjidList=0 : xx=0 : yy=0 : sxImgs=0 : syImgs=0 : srcxImgs=0 : srcyImgs=0 : srcxRgMsks=0 : srcyRgMsks=0 : xLeadInImgs=0 : yLeadInImgs=0 : xyNeed=0	//未初期化変数警告回避
+	
+	#deffunc getTextBound str text_, array xyNeed_	//与えられた文字列を描画するのに必要なxyサイズを得る
+		/*
+			text_ : 文字列
+			xyNeed_ : 結果の格納先
+	
+			WID_GENERALで試し書きする。このウィンドウで事前にフォント設定を行っておくこと。
+		*/
+		gsel WID_GENERAL
+		text=text_ : notesel text
+		xyNeed_=0 : tmp=""
+		repeat notemax : noteget tmp,cnt : mes tmp : if (xyNeed_(0)<ginfo_mesx) {xyNeed_(0)=ginfo_mesx} : loop
+		xyNeed_(1)=ginfo_mesy*notemax
+		return
+	
+	#defcfunc pitch2px_front double p_	//ピッチ座標→ピクセル座標(int)(表)
+		//p_ : ピッチ座標
+		return int(p_*pitch2px@ + offsetGpcTopLeftHole@)
+	
+	#deffunc drawWiredRect array xrect_,array yrect_	//線で四角形を描く
+		//xrect_,yrect_ : gsquareと同じ形式
+		line xrect_(1),yrect_(1), xrect_,yrect_
+		line xrect_(2),yrect_(2)
+		line xrect_(3),yrect_(3)
+		line xrect_,yrect_
+		return
+	
+	#deffunc initGPCandRegionBuf int numHole_x_, int numHole_y_	//GPC,REGIONバッファの初期化
+		//numHole_x_,numHole_y_ : 穴数
+		assertEx ((numHole_x_>=1)&&(numHole_y_>=1))
+		sx_GPC@ = 2*offsetGpcTopLeftHole@+(numHole_x_-1)*pitch2px@ + 1 : sy_GPC@ = 2*offsetGpcTopLeftHole@+(numHole_y_-1)*pitch2px@ + 1 : sx_region@=sx_GPC@ : sy_region@=sy_GPC@
+		buffer WID_FRONTGPC, sx_GPC@,sy_GPC@ : buffer WID_FRONTREGION, sx_region@,sy_region@
+		buffer WID_BACKGPC, sx_GPC@,sy_GPC@ : buffer WID_BACKREGION, sx_region@,sy_region@
+		return
+	
+	#deffunc clearFrontAndBack int flg_redraw_	//表面,裏面ウィンドウの描画内容をクリア
+		//flg_redraw_ : 再描画フラグ
+		gsel WID_FRONT : redraw 0 : rgbcolor BGC_FRONT_BACK : boxf : redraw flg_redraw_
+		gsel WID_BACK : redraw 0 : rgbcolor BGC_FRONT_BACK : boxf : redraw flg_redraw_
+		return
+	
+	#deffunc drawGPCandRegion	//グラフィック,リージョンバッファの描画
+		getZOrderedPartObjidList zOrderedPartObjidList
+		/*
+			表面 
+			[方針] : 穴→裏面配線(オプション)→裏面接続点(オプション)→部品→表面配線→表面接続点→コメントタグ→選択範囲
+		*/
+			gsel WID_FRONTREGION : rgbcolor BGC_REGION : boxf	//リージョンバッファクリア
+			gosub *drawFrontHoles	//穴
+			if (opt_front_showBackWires@) {gosub *drawBackWiresOnFrontGPC : gosub *drawBackJncsOnFrontGPC}	//裏面配線,接続点
+			gosub *drawPartsOnFrontGPCandRegion	//部品
+			gosub *drawFrontWiresOnFrontGPCandRegion//表面配線
+			gosub *drawFrontJncsOnFrontGPC	//表面接続点
+			gosub *drawFrontCmtTags	//表面コメントタグ
+			gosub *drawRectSelOnFrontGPC	//選択範囲
+		/*
+			裏面
+			[方針] : 穴→部品→裏面配線→裏面接続点→表面配線(オプション)→表面接続点(オプション)→選択範囲
+		*/
+			gsel WID_BACKREGION : rgbcolor BGC_REGION : boxf	//リージョンバッファクリア
+			gosub *drawBackHoles	//穴
+			gosub *drawPartsOnBackGPC	//部品
+			gosub *drawBackWiresOnBackGPCandRegion	//裏面配線
+			gosub *drawBackJncsOnBackGPC	//裏面接続点
+			if (opt_back_showFrontWires@) {gosub *drawFrontWiresOnBackGPC : gosub *drawFrontJncsOnBackGPC}	//表面配線,接続点
+			gosub *drawBackCmtTags	//裏面コメントタグ
+			gosub *drawRectSelOnBackGPC	//選択範囲
+		return
+		*drawFrontHoles	//表面の穴を描画
+			gsel WID_FRONTGPC : rgbcolor boardColor : boxf
+			gmode 4, sxyImg_hole@,sxyImg_hole@, 256 : rgbcolor transparentColor
+			r=(sxyImg_hole@-1)/2
+			repeat numHole_xCurProj*numHole_yCurProj
+				x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj	//ピッチ座標
+				x_px = pitch2px_front(x_pitch) : y_px = pitch2px_front(y_pitch)	//ピクセル座標
+				pos x_px-r, y_px-r : gcopy WID_RESOURCE, srcxImg_frontHole@,srcyImg_frontHole@
+			loop
+			return
+		*drawBackHoles	//裏面の穴を描画
+			gsel WID_BACKGPC : rgbcolor boardColor : boxf
+			gmode 4, sxyImg_hole@,sxyImg_hole@, 256 : rgbcolor transparentColor
+			r=(sxyImg_hole@-1)/2
+			repeat numHole_xCurProj*numHole_yCurProj
+				x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj : x_px = pitch2px_front(x_pitch) : y_px = pitch2px_front(y_pitch)
+				pos x_px-r, y_px-r
+				if (getNumParts@HOLE(HOLEs@(cnt))) {gcopy WID_RESOURCE, srcxImg_backHoleWithPin@,srcyImg_backHoleWithPin@} else {gcopy WID_RESOURCE, srcxImg_backHole@,srcyImg_backHole@}
+			loop
+			return
+		*drawBackWiresOnFrontGPC	//表面グラフィックスバッファに裏面配線を描画
+			if (numWiresCurProj==0) {return}
+			foreach OBJs@
+				idObj=cnt : objtype=getObjtype@OBJ(OBJs@(idObj)) : if (objtype!=OBJTYPE_WIRE@) {continue} : if (getSide@OBJ(OBJs@(idObj))!=WIRESIDE_BACK) {continue}
+				getxxyy@OBJ OBJs@(idObj), xx,yy : wireColor=getWireColor@OBJ(OBJs@(idObj)) : xx_px = pitch2px_front(xx),pitch2px_front(xx(1)) : yy_px = pitch2px_front(yy),pitch2px_front(yy(1))
+				gsel WID_FRONTGPC : gmode 3,,,OPACITY_OSW : rgbcolor wireColor : boldLine_2D xx_px,yy_px, xx_px(1),yy_px(1), t_wire_px_GPC
+			loop
+			return
+		*drawFrontWiresOnBackGPC	//裏面グラフィックスバッファに表面配線を描画
+			if (numWiresCurProj==0) {return}
+			foreach OBJs@
+				idObj=cnt : objtype=getObjtype@OBJ(OBJs@(idObj)) : if (objtype!=OBJTYPE_WIRE@) {continue} : if (getSide@OBJ(OBJs@(idObj))!=WIRESIDE_FRONT) {continue}
+				getxxyy@OBJ OBJs@(idObj), xx,yy : wireColor=getWireColor@OBJ(OBJs@(idObj)) : xx_px = pitch2px_front(xx),pitch2px_front(xx(1)) : yy_px = pitch2px_front(yy),pitch2px_front(yy(1))
+				gsel WID_BACKGPC : gmode 3,,,OPACITY_OSW : rgbcolor wireColor : boldLine_2D xx_px,yy_px, xx_px(1),yy_px(1), t_wire_px_GPC
+			loop
+			return
+		*drawBackJncsOnFrontGPC	//表面グラフィックスバッファに裏面接続点を描画
+			r=(sxyImg_Jnc@-1)/2
+			repeat numHole_xCurProj*numHole_yCurProj
+				if (getNumBackWires@HOLE(HOLEs@(cnt))<3) {continue}	//裏配線が3本以上挿さっていることが必要
+				x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj : x_px = pitch2px_front(x_pitch) : y_px = pitch2px_front(y_pitch)
+				gsel WID_FRONTGPC : gmode 4,sxyImg_Jnc@,sxyImg_Jnc@, OPACITY_OSW : rgbcolor transparentColor : pos x_px-r, y_px-r : gcopy WID_RESOURCE, srcxImg_backJnc@,srcyImg_backJnc@
+			loop
+			return
+		*drawFrontJncsOnBackGPC	//裏面グラフィックスバッファに表面接続点を描画
+			r=(sxyImg_Jnc@-1)/2
+			repeat numHole_xCurProj*numHole_yCurProj
+				if (getNumFrontWires@HOLE(HOLEs@(cnt))<3) {continue}	//表配線が3本以上挿さっていることが必要
+				x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj : x_px = pitch2px_front(x_pitch) : y_px = pitch2px_front(y_pitch)
+				gsel WID_BACKGPC : gmode 4,sxyImg_Jnc@,sxyImg_Jnc@, OPACITY_OSW : rgbcolor transparentColor : pos x_px-r, y_px-r : gcopy WID_RESOURCE, srcxImg_frontJnc@,srcyImg_frontJnc@
+			loop
+			return
+		*drawPartsOnFrontGPCandRegion	//表面グラフィックス,リージョンバッファに部品を描画
+			if (numPartsCurProj==0) {return}
+			repeat numPartsCurProj
+				idObj=zOrderedPartObjidList(cnt)
+				idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj))
+				deg=getDeg@OBJ(OBJs@(idObj)) : idx=deg/90
+				getxxyy@OBJ OBJs@(idObj), xx,yy : xx_px = pitch2px_front(xx) : yy_px = pitch2px_front(yy)
+				dupSxyImgs@PMFDat PMFDats@(idPMFDat), idPMDat, sxImgs,syImgs : sxImg=sxImgs(idx) : syImg=syImgs(idx)
+				dupSrcxyImgs@PMFDat PMFDats@(idPMFDat), idPMDat, srcxImgs,srcyImgs : srcxImg=srcxImgs(idx) : srcyImg=srcyImgs(idx)
+				dupSrcxyRgMsks@PMFDat PMFDats@(idPMFDat), idPMDat, srcxRgMsks,srcyRgMsks : srcxRgMsk=srcxRgMsks(idx) : srcyRgMsk=srcyRgMsks(idx)
+				dupXyLeadInImgs@PMFDat PMFDats@(idPMFDat), idPMDat, xLeadInImgs,yLeadInImgs : xLeadInImg=xLeadInImgs(idx) : yLeadInImg=yLeadInImgs(idx)
+				gsel WID_FRONTGPC : gmode 4,sxImg,syImg,256 : rgbcolor transparentColor : pos xx_px-xLeadInImg,yy_px-yLeadInImg : gcopy WID_PLIBUF, srcxImg,srcyImg	//グラフィックスバッファ
+				secureBuf WID_GENERAL, sxImg*2,syImg : rgbcolor idObj : boxf 0,0,sxImg,syImg : gmode 0,sxImg,syImg : pos sxImg,0 : gcopy WID_PLIBUF, srcxRgMsk,srcyRgMsk : gsel WID_FRONTREGION : gmode 7,sxImg,syImg : pos xx_px-xLeadInImg,yy_px-yLeadInImg : gcopy WID_GENERAL, 0,0	//リージョンバッファ
+			loop
+			return
+		*drawPartsOnBackGPC	//裏面グラフィックスバッファに部品を描画
+			if (numPartsCurProj==0) {return}
+			repeat numPartsCurProj
+				idObj=zOrderedPartObjidList(numPartsCurProj-1-cnt)
+				idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj))
+				deg=getDeg@OBJ(OBJs@(idObj)) : idx=deg/90
+				getxxyy@OBJ OBJs@(idObj), xx,yy : xx_px = pitch2px_front(xx) : yy_px = pitch2px_front(yy)
+				dupSxyImgs@PMFDat PMFDats@(idPMFDat), idPMDat, sxImgs,syImgs : sxImg=sxImgs(idx) : syImg=syImgs(idx)
+				dupXyLeadInImgs@PMFDat PMFDats@(idPMFDat), idPMDat, xLeadInImgs,yLeadInImgs : xLeadInImg=xLeadInImgs(idx) : yLeadInImg=yLeadInImgs(idx)
+				xrect = xx_px-xLeadInImg,xrect(0),xrect(1)+sxImg-1,xrect(2) : yrect=yy_px-yLeadInImg,yrect(0)+syImg-1,yrect(1),yrect(0)
+				gsel WID_BACKGPC : rgbcolor partBBcolor : drawWiredRect xrect,yrect	//グラフィックスバッファにバウンディングボックスを描く
+			loop
+			return
+		*drawFrontWiresOnFrontGPCandRegion	//表面グラフィックス,リージョンバッファに表面配線を描画
+			if (numWiresCurProj==0) {return}
+			foreach OBJs@
+				idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {continue} : if (getSide@OBJ(OBJs@(idObj))!=WIRESIDE_FRONT) {continue}
+				getxxyy@OBJ OBJs@(idObj), xx,yy : wireColor=getWireColor@OBJ(OBJs@(idObj)) : xx_px = pitch2px_front(xx),pitch2px_front(xx(1)) : yy_px = pitch2px_front(yy),pitch2px_front(yy(1))
+				gsel WID_FRONTGPC : gmode 0 : rgbcolor wireColor : boldLine_2D xx_px,yy_px, xx_px(1),yy_px(1), t_wire_px_GPC	//グラフィックスバッファ
+				gsel WID_FRONTREGION : gmode 0 : rgbcolor idObj : boldLine_2D xx_px,yy_px, xx_px(1),yy_px(1), t_wire_px_REG	//リージョバッファ
+			loop
+			return
+		*drawBackWiresOnBackGPCandRegion	//裏面グラフィックス,リージョンバッファに裏面配線を描画
+			if (numWiresCurProj==0) {return}
+			foreach OBJs@
+				idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {continue} : if (getSide@OBJ(OBJs@(idObj))!=WIRESIDE_BACK) {continue}
+				getxxyy@OBJ OBJs@(idObj), xx,yy : wireColor=getWireColor@OBJ(OBJs@(idObj)) : xx_px = pitch2px_front(xx),pitch2px_front(xx(1)) : yy_px = pitch2px_front(yy),pitch2px_front(yy(1))
+				gsel WID_BACKGPC : gmode 0 : rgbcolor wireColor : boldLine_2D xx_px,yy_px, xx_px(1),yy_px(1), t_wire_px_GPC	//グラフィックスバッファ
+				gsel WID_BACKREGION : gmode 0 : rgbcolor idObj : boldLine_2D xx_px,yy_px, xx_px(1),yy_px(1), t_wire_px_REG	//リージョンバッファ
+			loop
+			return
+		*drawFrontJncsOnFrontGPC	//表面グラフィックスバッファに表面接続点を描画
+			r=(sxyImg_Jnc@-1)/2
+			repeat numHole_xCurProj*numHole_yCurProj
+				if (getNumFrontWires@HOLE(HOLEs@(cnt))<3) {continue}	//表配線が3本以上挿さっていることが必要
+				x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj : x_px = pitch2px_front(x_pitch) : y_px = pitch2px_front(y_pitch)
+				gsel WID_FRONTGPC : gmode 4,sxyImg_Jnc@,sxyImg_Jnc@,256 : rgbcolor transparentColor : pos x_px-r, y_px-r : gcopy WID_RESOURCE, srcxImg_frontJnc@,srcyImg_frontJnc@
+			loop
+			return
+		*drawBackJncsOnBackGPC	//裏面グラフィックスバッファに裏面接続点を描画
+			r=(sxyImg_Jnc@-1)/2
+			repeat numHole_xCurProj*numHole_yCurProj
+				if (getNumBackWires@HOLE(HOLEs@(cnt))<3) {continue}	//裏配線が3本以上挿さっていることが必要
+				x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj : x_px = pitch2px_front(x_pitch) : y_px = pitch2px_front(y_pitch)
+				gsel WID_BACKGPC : gmode 4,sxyImg_Jnc@,sxyImg_Jnc@, 256 : rgbcolor transparentColor : pos x_px-r, y_px-r : gcopy WID_RESOURCE, srcxImg_backJnc@,srcyImg_backJnc@
+			loop
+			return
+		*drawFrontCmtTags	//表面のコメントタグを描画
+			if (opt_showCmtTags@==FALSE) {return}
+			if (numCmtTagsCurProj==0) {return}
+			gsel WID_FRONTGPC : font FONT_CMTTAG, FONTSIZE_CMTTAG
+			ddim tmp,2
+			foreach OBJs@
+				idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_CMTTAG) {continue} : if (getSide@OBJ(OBJs@(idObj))!=SIDE_FRONT) {continue}
+				xx_dbl=getxx_dbl@OBJ(OBJs@(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj)) : x_px = pitch2px_front(xx_dbl) : y_px = pitch2px_front(yy_dbl)
+				bgColor=getbgColor@OBJ(OBJs@(idObj)) : chrColor=getchrColor@OBJ(OBJs@(idObj))
+				comment=getComment@OBJ(OBJs@(idObj)) : getsxsy@OBJ(OBJs@(idObj)), tmp(0), tmp(1) : sxNeed = metric_board2Client(tmp(0)) : syNeed = metric_board2Client(tmp(1))
+				xrect=x_px,x_px, x_px+sxNeed-1, x_px+sxNeed-1 : yrect=y_px,y_px+syNeed-1, y_px+syNeed-1,y_px
+				gsel WID_FRONTGPC : gmode 3,,,OPACITY_CMTTAG : rgbcolor bgColor : gsquare -1, xrect,yrect : rgbcolor chrColor : pos x_px,y_px : mes comment	//グラフィックスバッファ
+				gsel WID_FRONTREGION : gmode 0 : rgbcolor idObj : gsquare -1, xrect,yrect	//リージョンバッファ
+			loop
+			return
+		*drawBackCmtTags	//裏面のコメントタグを描画
+			if (opt_showCmtTags@==FALSE) {return}
+			if (numCmtTagsCurProj==0) {return}
+			gsel WID_BACKGPC : font FONT_CMTTAG, FONTSIZE_CMTTAG
+			ddim tmp,2
+			foreach OBJs@
+				idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_CMTTAG) {continue} : if (getSide@OBJ(OBJs@(idObj))!=SIDE_BACK) {continue}
+				xx_dbl=getxx_dbl@OBJ(OBJs@(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj)) : x_px = pitch2px_front(xx_dbl) : y_px = pitch2px_front(yy_dbl)
+				bgColor=getbgColor@OBJ(OBJs@(idObj)) : chrColor=getchrColor@OBJ(OBJs@(idObj))
+				comment=getComment@OBJ(OBJs@(idObj)) : getsxsy@OBJ(OBJs@(idObj)), tmp(0), tmp(1) : sxNeed = metric_board2Client(tmp(0)) : syNeed = metric_board2Client(tmp(1))
+				xrect=x_px,x_px, x_px+sxNeed-1, x_px+sxNeed-1 : yrect=y_px,y_px+syNeed-1, y_px+syNeed-1,y_px
+				/* グラフィックスバッファ */
+					gsel WID_BACKGPC : gmode 3,,,OPACITY_CMTTAG : rgbcolor bgColor : gsquare -1, xrect,yrect	//背景
+					/* 文字列 */
+						if (opt_back_mirror@) {	//鏡像モード
+							rgbcolor chrColor : pos x_px,y_px : mes comment
+						} else {	//非鏡像モード -> 予め反転させる必要あり
+							secureBuf WID_GENERAL, sxNeed,syNeed : color : boxf 0,0, sxNeed,syNeed	//黒を透過色とする
+							rgbcolor limit(chrColor,1,0xFFFFFF) : pos 2,0 : mes comment
+							xrect_src=0,0, sxNeed,sxNeed : yrect_src=0,syNeed, syNeed,0
+							xrect_dst=x_px+sxNeed,x_px+sxNeed, x_px,x_px : yrect_dst=y_px,y_px+syNeed, y_px+syNeed,y_px
+							gsel WID_BACKGPC : gmode 4,,,255 : color : gsquare WID_GENERAL, xrect_dst,yrect_dst, xrect_src,yrect_src
+						}
+				gsel WID_BACKREGION : gmode 0 : rgbcolor idObj : gsquare -1, xrect,yrect	//リージョンバッファ
+			loop
+			return
+		*drawRectSelOnFrontGPC	//表面グラフィックスバッファに選択範囲を描画
+			if (flg_rectSelExist@==FALSE) {return}
+			if ((SideRectSel@&SIDE_RECT_SEL_FRONT)==0) {return}
+			xrect = pitch2px_front(rectSel@(IDX_RECTSEL_xTopLeft)),xrect(0), pitch2px_front(rectSel@(IDX_RECTSEL_xBottomRight)),xrect(2)
+			yrect = pitch2px_front(rectSel@(IDX_RECTSEL_yTopLeft)),pitch2px_front(rectSel@(IDX_RECTSEL_yBottomRight)), yrect(1),yrect(0)
+			gsel WID_FRONTGPC : gmode 4,,,OPACITY_RECTSEL : rgbcolor COLOR_INTERIOR_RECTSEL : gsquare -1, xrect,yrect
+			rgbcolor COLOR_BOUND_RECTSEL : drawWiredRect xrect,yrect
+			return
+		*drawRectSelOnBackGPC	//裏面グラフィックスバッファに選択範囲を描画
+			if (flg_rectSelExist@==FALSE) {return}
+			if ((SideRectSel@&SIDE_RECT_SEL_BACK)==0) {return}
+			xrect = pitch2px_front(rectSel@(IDX_RECTSEL_xTopLeft)),xrect(0), pitch2px_front(rectSel@(IDX_RECTSEL_xBottomRight)),xrect(2)
+			yrect = pitch2px_front(rectSel@(IDX_RECTSEL_yTopLeft)),pitch2px_front(rectSel@(IDX_RECTSEL_yBottomRight)), yrect(1),yrect(0)
+			gsel WID_BACKGPC : gmode 4,,,OPACITY_RECTSEL : rgbcolor COLOR_INTERIOR_RECTSEL : gsquare -1, xrect,yrect
+			rgbcolor COLOR_BOUND_RECTSEL : drawWiredRect xrect,yrect
+			return
+	
+	#deffunc drawFrontAndBackWnd	//表面,裏面ウィンドウの描画
+		/* 表面 */
+			sx_view=sxc_front@/magDisp@ : sy_view=syc_front@/magDisp@
+			/*GPCからコピーする領域*/
+				x1_GPC=limit(xofst_viewGPC@,0,sx_GPC@-1) : y1_GPC=limit(yofst_viewGPC@,0,sy_GPC@-1)
+				x2_GPC=limit(xofst_viewGPC@+sx_view-1,0,sx_GPC@-1) : y2_GPC=limit(yofst_viewGPC@+sy_view-1,0,sy_GPC@-1)
+				sx_copy=x2_GPC-x1_GPC+1 : sy_copy=y2_GPC-y1_GPC+1
+			gsel WID_FRONT : pos limit(xofst_viewGPC@,1<<31,0)*(-magDisp@),limit(yofst_viewGPC@,1<<31,0)*(-magDisp@) : gzoom sx_copy*magDisp@,sy_copy*magDisp@, WID_FRONTGPC, x1_GPC,y1_GPC, sx_copy,sy_copy : redraw 1
+		/* 裏面 */
+			sx_view=sxc_back@/magDisp@ : sy_view=syc_back@/magDisp@
+			x1_GPC=limit(xofst_viewGPC@,0,sx_GPC@-1) : y1_GPC=limit(yofst_viewGPC@,0,sy_GPC@-1)
+			x2_GPC=limit(xofst_viewGPC@+sx_view-1,0,sx_GPC@-1) : y2_GPC=limit(yofst_viewGPC@+sy_view-1,0,sy_GPC@-1)
+			sx_copy=x2_GPC-x1_GPC+1 : sy_copy=y2_GPC-y1_GPC+1
+			gsel WID_BACK
+			if (opt_back_mirror@) {	//鏡像モード
+				pos limit(xofst_viewGPC@,1<<31,0)*(-magDisp@),limit(yofst_viewGPC@,1<<31,0)*(-magDisp@) : gzoom sx_copy*magDisp@,sy_copy*magDisp@, WID_BACKGPC, x1_GPC,y1_GPC, sx_copy,sy_copy : redraw 1
+			} else {
+				xrect_GPC=x1_GPC,x1_GPC,x2_GPC,x2_GPC : yrect_GPC=y1_GPC,y2_GPC,y2_GPC,y1_GPC
+				xrect_UI=sxc_back@-1+limit(xofst_viewGPC@,1<<31,0)*magDisp@,xrect_UI(0),xrect_UI(0)-sx_copy*magDisp@+1,xrect_UI(2)
+				yrect_UI=limit(xofst_viewGPC@,1<<31,0)*(-magDisp@),yrect_UI(0)+sy_copy*magDisp@-1,yrect_UI(1),yrect_UI(0)
+				gsquare WID_BACKGPC, xrect_UI,yrect_UI, xrect_GPC,yrect_GPC : redraw 1
+			}
+		return
+	
+	#deffunc refreshFrontAndBackWnd	//表目,裏面ウィンドウの描画内容更新
+		if (flg_projLoaded@) {clearFrontAndBack FALSE : drawFrontAndBackWnd} else {clearFrontAndBack TRUE}
+		return
+#global

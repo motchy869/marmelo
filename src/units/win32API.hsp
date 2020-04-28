@@ -1,0 +1,83 @@
+/*
+	win32API定義
+*/
+
+/* win32API */
+	#uselib "user32.dll"
+		#cfunc global SetTimer "SetTimer" int,int,int,nullptr
+		#cfunc global KillTimer "KillTimer" int, int
+		#func global AdjustWindowRect "AdjustWindowRect" var,int,int
+		#func global AppendMenu "AppendMenuA" int,int,int,str
+			#define global MF_BYCOMMAND	0
+			#define global MF_BYPOSITION	1024
+			#define global MF_CHECKED		8
+			#define global MF_ENABLED		0
+			#define global MF_GRAYED		1
+			#define global MF_POPUP		16
+			#define global MF_SEPARATOR	0x800
+			#define global MF_STRING		0
+			#define global MF_UNCHECKED	0
+		#func global ClientToScreen "ClientToScreen" int,var
+		#func global DeleteMenu "DeleteMenu" int,int,int
+		#func global EnableWindow "EnableWindow" int,int
+		#func global GetClientRect "GetClientRect" int,var
+		#cfunc global GetSystemMenu "GetSystemMenu" int,int
+		#cfunc global GetSystemMetrics "GetSystemMetrics" int
+			#define global SM_CXSIZEFRAME	32
+			#define global SM_CYSIZEFRAME	33
+			#define global SM_CYCAPTION	4
+		#cfunc global GetWindowLong "GetWindowLongA" int,int
+			#define global GWL_STYLE	-16
+		#func global GetWindowRect "GetWindowRect" int,var
+		#cfunc global IsWindowVisible "IsWindowVisible" int
+		#cfunc global IsIconic "IsIconic" int
+		#cfunc global IsZoomed "IsZoomed" int
+		#func global ScreenToClient "ScreenToClient" int,var
+		#func global SetParent "SetParent" int,int
+		#func global SetWindowLong "SetWindowLongA" int,int,int
+			#define global WS_CHILD		0x40000000
+			#define global WS_CLIPSIBLINGS 0x4000000
+			#define global WS_EX_APPWINDOW	0x40000
+			#define global WS_MAXIMIZEBOX	0x10000
+			#define global WS_POPUP		0x80000000
+			#define global WS_SIZEBOX		0x40000
+			#define global WS_SYSMENU		0x80000
+			#define global WS_TABSTOP		0x10000
+			#define global WS_VISIBLE		0x10000000
+		#func global SetWindowPos "SetWindowPos" int,int,int,int,int,int,int
+			#define global HWND_TOP	0
+			#define global SWP_NOSIZE	1
+			#define global SWP_NOMOVE	2
+			#define global SWP_NOZORDER	4
+		#cfunc global WindowFromPoint "WindowFromPoint" int,int
+		#func global CheckMenuItem	"CheckMenuItem" int,int,int
+		#func global CheckMenuRadioItem "CheckMenuRadioItem" int,int,int,int,int
+		#cfunc global CreateMenu "CreateMenu"
+		#cfunc global CreatePopupMenu "CreatePopupMenu"
+		#func global DrawMenuBar "DrawMenuBar" int
+		#func global EnableMenuItem "EnableMenuItem" int,int,int
+		#func global SetMenu "SetMenu" int,int
+		#func global TrackPopupMenu "TrackPopupMenu" int,int, int,int, int, int,int
+			#define global TPM_LEFTALIGN	0
+			#define global TPM_TOPALIGN		0
+			#define global TPM_RETURNCMD	0x100
+			#define global TPM_LEFTBUTTON	0
+		#uselib "gdi32.dll"
+			#func global BitBlt "BitBlt" int, int,int, int,int, int, int,int, int
+				#define global DSTINVERT	0x550009
+				#define global SRCINVERT	0x660046
+		#uselib "shell32.dll"
+		#func global DragAcceptFiles "DragAcceptFiles" int,int
+		#func global DragFinish "DragFinish" int
+		#func global DragQueryFile "DragQueryFile" int, int, var,int
+	
+	/* 関数をコンパイラに認識させる */
+		if (FALSE) {
+			hoge = KillTimer()
+			hoge = GetSystemMetrics()
+			hoge = IsWindowVisible()
+			hoge = WindowFromPoint(0,0)
+			CheckMenuItem : EnableMenuItem
+			TrackPopupMenu
+			DragFinish : DragQueryFile
+		}

@@ -1,0 +1,59 @@
+/*
+	メイン
+*/
+
+/*--------------------▼ 外部モジュールインクルード, 初期化 ▼--------------------*/
+#include "modules\\mod_json.as"
+#include "modules\\motchyMath\\motchyMath.as"
+#include "modules\\motchyDB\\motchyDB.as"
+#include "modules\\motchyStr\\motchyStr.as"
+#include "modules\\motchyIMG.as"
+#include "modules\\motchyDraw.as"
+#include "modules\\motchyGUI\\motchyGUI.as"
+/*--------------------------------------------------------------------------------*/
+
+#include "units\\macros.hsp"	//マクロ群
+#include "units\\constants.hsp"	//定数群
+#include "units\\math.hsp"	//数学モジュール
+#include "units\\win32API.hsp"	//win32API
+#include "units\\hspOpts.hsp"	//HSPオプション
+#include "units\\boot.hsp"	//起動
+
+/*--------------------▼ メインルーチン ▼--------------------*/
+*main
+	stop
+/*------------------------------------------------------------*/
+
+#include "units\\config.hsp"	//設定
+#include "units\\partsLib.hsp"	//部品管理
+#include "units\\proj\\proj.hsp"	//プロジェクト管理
+#include "units\\BDfile.hsp"	//回路図ファイル処理
+#include "units\\edit\\edit.hsp"	//編集
+#include "units\\resource.hsp"	//リソース管理
+#include "units\\draw.hsp"	//描画
+#include "units\\undoRedo.hsp"	//アンドゥ,リドゥ
+#include "units\\window.hsp"	//ウィンドウ管理
+
+/*--------------------▼ ダミーラベル ▼--------------------*/
+*lbDummy
+	return
+/*----------------------------------------------------------*/
+
+/*--------------------▼ 終了確認 ▼--------------------*/
+*confirmQuit
+	if ((flg_projLoaded)&&(flg_projModNotSaved)) {
+		gsel WID_MAIN : dialog "未保存の変更があります。破棄して終了しますか？",3,appName
+		if (stat==7) {return}
+	}
+	if (isLsideWindowOpen==TRUE) {closeLsideWnd}	//次回起動時にウィンドウの位置が右にずれないように。
+	cfgInt=0 : makeCfgDat cfgInt : saveConfigFile cfgInt	//設定ファイル保存
+	oncmd 0 : onexit 0 : onerror 0	//何故かこうしないとendをすり抜ける
+	end
+/*------------------------------------------------------*/
+
+/*--------------------▼ onerror割り込み ▼--------------------*/
+*int_onerror
+	oncmd 0 : onexit 0 : onerror 0
+	dialog "システムエラーが起きました\nerror code = "+err+"\nline = "+lparam,1,appName
+	end
+/*-------------------------------------------------------------*/

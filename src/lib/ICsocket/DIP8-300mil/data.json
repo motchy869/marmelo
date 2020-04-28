@@ -1,0 +1,7 @@
+{
+	"explanation":	"ICソ\ケット。DIP8パッケージ,300mil幅用。",
+	"numLeads":	8,
+	"rxLeads":	[1, 2, 3, 3, 2, 1, 0],
+	"ryLeads":	[0, 0, 0, -3, -3, -3, -3],
+	"posLeadInImg":	[5, 38]
+}

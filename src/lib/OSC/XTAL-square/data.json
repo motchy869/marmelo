@@ -1,0 +1,7 @@
+{
+	"explanation":	"水晶発振器。正方形CANパッケージ。",
+	"numLeads":	4,
+	"rxLeads":	[3, 3, 0],
+	"ryLeads":	[0, -3, -3],
+	"posLeadInImg":	[4, 37]
+}

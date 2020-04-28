@@ -1,0 +1,7 @@
+{
+	"explanation":	"7セグメントLED表\示器",
+	"numLeads":	10,
+	"rxLeads":	[1, 2, 3, 4, 4, 3, 2, 1, 0],
+	"ryLeads":	[0, 0, 0, 0, -6, -6, -6, -6, -6],
+	"posLeadInImg":	[5, 71]
+}

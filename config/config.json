@@ -1,0 +1,24 @@
+{
+	"UI":	{
+		"Window":	{
+			"main":	{
+				"wndstat":	0,
+				"posClient":	[146, 162],
+				"sizeClient":	[791, 548]
+			},
+			"frontAndBack":	{
+				"mag":	1,
+				"front":	{
+					"wndstat":	0,
+					"posClient":	[155, 193],
+					"sizeClient":	[379, 485]
+				},
+				"back":	{
+					"wndstat":	0,
+					"posClient":	[550, 193],
+					"sizeClient":	[379, 485]
+				}
+			}
+		}
+	}
+}

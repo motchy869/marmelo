@@ -1,0 +1,38 @@
+//部品ライブラリの構造化テキストの形式をNINIからJSONに変換する
+
+#runtime "hsp3cl"
+
+#cmpopt varinit 1
+
+#include "../modules/mod_json.as"
+#include "mod_NINI.as"
+
+cnvlist = "" : notesel cnvlist : noteload "cnvlist.txt"
+
+path_in = "" : file_in = ""
+repeat notemax
+	notesel cnvlist : noteget path_in, cnt
+	file_in = "" : notesel file_in : noteload path_in
+	nini_mount file_in : idNini=stat : nini_sel idNini
+	
+	path_out = getpath(path_in, 1) + ".json"
+	jsonnkf "s", "s"
+	file_out = "{}" : json = jsonOpen_f(file_out)
+
+	buf = nini_getVal("explanation", "") : strrep buf, "[br]", "\n" : jsonputs json, "explanation", buf
+	
+	numLeads = int(nini_getVal("numLeads", "")) : jsonputi json, "numLeads", numLeads
+	json_rxLeads = jsonNewArray(json, "rxLeads") : jsonputi json_rxLeads, "", 0
+	json_ryLeads = jsonNewArray(json, "ryLeads") : jsonputi json_ryLeads, "", 0
+	repeat numLeads-1, 2
+		jsonputi json_rxLeads, "", int(nini_getVal("rxLead"+cnt, ""))
+		jsonputi json_ryLeads, "", int(nini_getVal("ryLead"+cnt, ""))
+	loop
+
+	json_posLeadInImg = jsonNewArray(json, "posLeadInImg") : jsonputi json_posLeadInImg, "", int(nini_getVal("xLeadInImg", "")) : jsonputi json_posLeadInImg, "", int(nini_getVal("yLeadInImg", ""))
+
+	jsonout file_out, json
+	jsonclose
+	notesel file_out : notesave path_out
+	mes path_out
+loop

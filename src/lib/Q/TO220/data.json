@@ -1,0 +1,7 @@
+{
+	"explanation":	"トランジスタ。TO220パッケージ。",
+	"numLeads":	3,
+	"rxLeads":	[1, 2],
+	"ryLeads":	[0, 0],
+	"posLeadInImg":	[10, 12]
+}

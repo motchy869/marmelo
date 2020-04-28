@@ -1,0 +1,1004 @@
+/*
+	プロジェクト管理
+*/
+
+/*
+	[規定]
+	
+		[zオーダー]
+			　部品には「zオーダー」が与えられる。この値が小さいものほど下にある(->先に描画される)。
+			操作の過渡状態(部品が削除された直後等)を除いて、0～(部品の数-1)のzオーダーは必ず1つの部品と対応する(->間が空くことはない)。
+*/
+
+/*
+	[変数定義]
+		OBJs : OBJモジュール変数の配列。これで全ての部品と配線を管理する。
+		HOLEs : HOLEモジュール変数の配列。これで全ての穴の情報を管理する。2次元的な穴の配置を直列化して要素を並べてある。
+		CMTTAGs : CMTTAGモジュール変数の配列。これで全てのコメントタグを管理する。
+		
+*/
+#include "proj_OBJ.hsp"
+#include "proj_HOLE.hsp"
+
+#module proj_smallFuncs	//小規模関数群
+	#defcfunc existObj int idObj_	//オブジェクトの存在確認
+		if ((numObjsCurProj==0)||(idObj_<0)) {return FALSE} : if (varuse(OBJs@(idObj_))==0) {return FALSE}
+		return TRUE
+	
+	#defcfunc isPart int idObj_	//与えられたIDのオブジェクトが部品かどうか調べる
+		if (existObj(idObj_)==FALSE) {return FALSE}
+		return (getObjType@OBJ(OBJs@(idObj_))==OBJTYPE_PART)
+	
+	#defcfunc isWire int idObj_	//与えられたIDのオブジェクトが配線かどうか調べる
+		if (existObj(idObj_)==FALSE) {return FALSE}
+		return (getObjType@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+	
+	#defcfunc isCmtTag int idObj_	//与えられたIDのオブジェクトがコメントタグかどうか調べる
+		if (existObj(idObj_)==FALSE) {return FALSE}
+		return (getObjType@OBJ(OBJs@(idObj_))==OBJTYPE_CMTTAG)
+#global
+
+#module proj_buildHOLEs	//HOLEs構築処理
+	xx=0 : yy=0 : rxLeads=0 : ryLeads=0	//未初期化変数警告回避
+	
+	#deffunc buildHOLEsFromOBJs	//OBJsからHOLEsを構築
+		newmod HOLEs@, HOLE : foreach HOLEs@ : delmod HOLEs@(cnt) : loop	//クリア
+		repeat numHole_xCurProj*numHole_yCurProj : newmod HOLEs@, HOLE : loop
+		insertAllPartsAndWires
+		return
+#global
+
+#module proj_zOrder	//zオーダーに関する処理
+	#defcfunc getNewPartZOrder	//新しい部品のzオーダーを計算する
+		return numPartsCurProj
+	
+	#deffunc local bringPartToFront int idObj_	//部品を最前面に移動(=最大のzオーダーを割当てる)
+		assertEx existObj(idObj_)
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART)
+		zOrder=getZOrder@OBJ(OBJs@(idObj_))
+		foreach OBJs@	//最前面に移動したオブジェクトが抜けた分だけ、上にあったオブジェクトを下げる。
+			idObj2=cnt : if (getObjtype@OBJ(OBJs@(idObj2))!=OBJTYPE_PART) {continue}
+			zOrder2=getZOrder@OBJ(OBJs@(idObj2))
+			if (zOrder2>zOrder) {setZOrder@OBJ OBJs@(idObj2), zOrder2-1}
+		loop
+		setZOrder@OBJ OBJs@(idObj_), numPartsCurProj-1	//目標を最前面に移動
+		return
+	
+	#deffunc CloseZOrderInterval int zOrder_	//部品が削除されたとして、より上にあった部品を一段下げる。
+		//zOrder_ : 削除された部品のzオーダー
+		if (numPartsCurProj==0) {return}
+		foreach OBJs@
+			idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_PART) {continue}
+			zOrder=getZOrder@OBJ(OBJs@(idObj)) : assertEx (zOrder!=zOrder_)
+			if (zOrder>zOrder_) {setZOrder@OBJ OBJs@(idObj), zOrder-1}
+		loop
+		return
+	
+	#deffunc getZOrderedPartObjidList array list_	//zオーダー順に並べられた部品のオブジェクトIDのリストを得る
+		if (numPartsCurProj==0) {return}
+		if (vartype(list_)!=vartype("int")) {dim list_,numPartsCurProj}
+		foreach OBJs@
+			idObj=cnt
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_PART) {continue}
+			list_(getZOrder@OBJ(OBJs@(idObj)))=cnt
+		loop
+		return
+#global
+
+#module proj_CreateAndClear	//プロジェクトの作成,クリア処理
+	rxLeads=0 : ryLeads=0	//未初期化変数警告回避
+	
+	#deffunc createNewProj int numHole_x_,int numHole_y_	//プロジェクト作成
+		//numHole_x_, numHole_y_ : 横,縦方向の穴の数
+		assertEx ((numHole_x_>=1)&&(numHole_y_>=1))
+		numPartsCurProj=0 : numWiresCurProj=0 : numCmtTagsCurProj=0 : numObjsCurProj=0
+		numHole_xCurProj=numHole_x_ : numHole_yCurProj=numHole_y_
+		isReadOnlyCurProj=FALSE
+		repeat numHole_xCurProj*numHole_yCurProj : newmod HOLEs@, HOLE : loop
+		foreach projProp_str@ : projProp_str@(cnt)="" : loop
+		initGPCandRegionBuf numHole_xCurProj,numHole_yCurProj
+		flg_projLoaded@=TRUE : flg_projModNotSaved@=TRUE
+		return
+	
+	#deffunc clearProj	//プロジェクトクリア
+		newmod OBJs@,OBJ : foreach OBJs@ : delmod OBJs@(cnt) : loop
+		newmod HOLEs@, HOLE : foreach HOLEs@ : delmod HOLEs@(cnt) : loop
+		foreach projProp_int@ : projProp_int@(cnt)=0 : loop
+		foreach projProp_str@ : projProp_str@(cnt)="" : loop
+		initGPCandRegionBuf 1,1	//メモリ解放
+		flg_projLoaded@=FALSE
+		return
+	
+	/* プロジェクト新規作成割り込み対応*/
+		#deffunc int_createNewProj
+			if (flg_projLoaded@) {
+				if (flg_projModNotSaved@) {
+					gsel WID_MAIN : dialog "未保存の変更があります。破棄しますか？",3,appName
+					if (stat==7) {return}
+				}
+				unloadProj
+			}
+			gsel WID_NEWPROJ,1 : openlsideWnd SX_NEWPROJ : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			return
+			*int_button_newproj_do
+				nx=int(bufInput@(IDINPUT_x_numHole)) : ny=int(bufInput@(IDINPUT_y_numHole))
+				if ((nx>=1)&&(ny>=1)) {flg_goNext=TRUE} else {dialog "その穴の数では作れません",1,appName : return}
+				gosub *int_button_newproj_cancel
+				createNewProj nx,ny : flg_mbdUpConverted@=FALSE
+				xofst_viewGPC@=0 : yofst_viewGPC@=0 : refreshFrontAndBackWnd
+				projPath@=""
+				pattern_UI_operation_done TRUE
+				int_setProjProp
+				return
+			*int_button_newproj_cancel
+				closeLsideWnd : gsel WID_NEWPROJ,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+				return
+#global
+
+#module proj_unload	//プロジェクトのアンロード処理
+	#deffunc unloadProj	//プロジェクトのアンロード
+		udrd_forgetAll : clearProj : flg_projModNotSaved@=FALSE : projPath@="" : refreshFrontAndBackWnd : arrangeMenuBarStat : arrangeStatBarStat : gsel WID_MAIN : title appName
+		return
+	
+	#deffunc int_unloadProj	//プロジェクトアンロード割り込み対応
+		assertEx (flg_projLoaded@)
+		if (flg_projModNotSaved@) {
+			gsel WID_MAIN : dialog "未保存の変更があります。破棄しますか？",3,appName
+			if (stat==7) {return}
+		}
+		unloadProj
+		return
+#global
+
+#module proj_open	//プロジェクト読み込み処理
+	#deffunc int_openProj	//プロジェクト読み込み割り込み対応
+		if (flg_projLoaded@) {
+			if (flg_projModNotSaved@) {
+				gsel WID_MAIN : dialog "未保存の変更があります。破棄しますか？",3,appName@
+				if (stat==7) {return}
+			}
+			unloadProj@
+		}
+		dialog nameExt,16,""+appName@+"回路図ファイル"
+		if (stat==0) {return}
+		pattern_UI_openProj refstr
+		return
+#global
+
+#module proj_save	//プロジェクト保存処理
+	#deffunc int_saveProj	//プロジェクト保存割り込み対応
+		assertEx (flg_projLoaded@)
+		//assertEx (isReadOnlyCurProj==FALSE)
+		dialog nameExt,17,appName+"回路図ファイル"
+		if (stat==0) {return}
+		projPath@=refstr : if (getpath(projPath@,2)=="") {projPath@+="."+nameExt}
+		saveBDfile projPath@
+		flg_mbdUpConverted@=FALSE : flg_projModNotSaved@=FALSE
+		gsel WID_MAIN : title appName@+" - "+getpath(projPath@,8)
+		return
+	
+	#deffunc int_overwriteProj	//プロジェクト上書き割り込み対応
+		assertEx (flg_projLoaded@)
+		//assertEx (isReadOnlyCurProj==FALSE)
+		if (projPath@="") {int_saveProj : return}
+		if (flg_mbdUpConverted@==TRUE) {
+			dialog "上書きされようとしているファイルは旧形式です。新形式で上書きされますがよろしいですか？",3,appName
+			if (stat==7) {return}
+		}
+		saveBDfile projPath@
+		flg_mbdUpConverted@=FALSE : flg_projModNotSaved@=FALSE
+		gsel WID_MAIN : title appName@+" - "+getpath(projPath@,8)
+		return
+#global
+
+#module proj_setProjProp	//プロジェクトプロパティ設定処理
+	#deffunc int_setProjProp
+		assertEx (flg_projLoaded@)
+		/* GUIコントロール準備 */
+			sendmsg hwndInput@(IDINPUT_author_projProp), WM_SETTEXT, 0, varptr(projProp_str@(IDX_PROJPROP_STR_AUTHOR))
+			sendmsg hwndInput@(IDINPUT_title_projProp), WM_SETTEXT, 0, varptr(projProp_str@(IDX_PROJPROP_STR_TITLE))
+			sendmsg hwndInput@(IDINPUT_subtitle_projProp), WM_SETTEXT, 0, varptr(projProp_str@(IDX_PROJPROP_STR_SUBTITLE))
+			sendmsg hwndMesbox@(IDMESBOX_explanation_projProp), WM_SETTEXT, 0, varptr(projProp_str@(IDX_PROJPROP_STR_EXPLANATION))
+			sendmsg hwndChkBox@(IDCHKBOX_readOnly_projProp), BM_SETCHECK, projProp_int@(IDX_PROJPROP_INT_readOnly), 0
+		gsel WID_SETPROJPROP,1 : openlsideWnd SX_SETPROJPROP : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		return
+	*int_button_update
+		udrd_progress
+		projProp_str@(IDX_PROJPROP_STR_AUTHOR)=bufInput@(IDINPUT_author_projProp)
+		projProp_str@(IDX_PROJPROP_STR_TITLE)=bufInput@(IDINPUT_title_projProp)
+		projProp_str@(IDX_PROJPROP_STR_SUBTITLE)=bufInput@(IDINPUT_subtitle_projProp)
+		projProp_str@(IDX_PROJPROP_STR_EXPLANATION)=mgui_getEditText(hwndMesbox@(IDMESBOX_explanation_projProp))
+		isReadOnlyCurProj_prev=isReadOnlyCurProj : isReadOnlyCurProj=statChkBox@(IDCHKBOX_readOnly_projProp)
+		pattern_UI_operation_done TRUE
+		if (isReadOnlyCurProj&&(isReadOnlyCurProj_prev==FALSE)) {	//読み取り専用に切り替わったときは保存しておく
+			gsel WID_MAIN : dialog "読み取り専用に指定されました。\n現在の状態をファイルに保存しておきますか？", 3, appName
+			if (stat==6) {int_overwriteProj}
+		}
+		gosub *int_button_cancel
+		return
+	*int_button_cancel
+		closeLsideWnd : gsel WID_SETPROJPROP,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+		return
+#global
+
+#module proj_insertAndPullout	//部品,配線基板に挿す/抜く処理
+	xx=0 : yy=0 : rxLeads=0 : ryLeads=0	//未初期化変数警告回避
+	
+	#deffunc pulloutPorW int idObj_	//部品,配線を基板から抜く
+		assertEx existObj(idObj_)
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART)||(getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		objtype=getObjtype@OBJ(OBJs@(idObj_)) : getxxyy@OBJ OBJs@(idObj_), xx,yy
+		if (objtype==OBJTYPE_PART) {	//部品
+			idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj_)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj_))
+			deg_rad=deg2rad(getDeg@OBJ(OBJs@(idObj_)))
+			numLeads=getNumLeads@PMFDat(PMFDats@(idPMFDat),idPMDat) : dupRxyLeads@PMFDat PMFDats@(idPMFDat),idPMDat, rxLeads,ryLeads
+			pullout@HOLE HOLEs@(numHole_xCurProj*yy+xx), idObj_, 1	//1番ピン
+			repeat numLeads-1	//2番目以降のピン
+				x=xx+round(cos(deg_rad)*rxLeads(cnt) - sin(deg_rad)*ryLeads(cnt)) : y=yy+round(sin(deg_rad)*rxLeads(cnt) + cos(deg_rad)*ryLeads(cnt))
+				pullout@HOLE HOLEs@(numHole_xCurProj*y+x),idObj_,2+cnt
+			loop
+		} else {pullout@HOLE HOLEs@(numHole_xCurProj*yy+xx), idObj_, 1 : pullout@HOLE HOLEs@(numHole_xCurProj*yy(1)+xx(1)), idObj_, 2}	//配線
+		return 0
+	
+	#deffunc insertPorW int idObj_	//部品,配線を基板に挿す
+		assertEx existObj(idObj_)
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_PART)||(getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		objtype=getObjtype@OBJ(OBJs@(idObj_)) : getxxyy@OBJ OBJs@(idObj_), xx,yy
+		if (objtype==OBJTYPE_PART) {	//部品
+			idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj_)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj_))
+			deg_rad=deg2rad(getDeg@OBJ(OBJs@(idObj_)))
+			numLeads=getNumLeads@PMFDat(PMFDats@(idPMFDat),idPMDat) : dupRxyLeads@PMFDat PMFDats@(idPMFDat),idPMDat, rxLeads,ryLeads
+			insert@HOLE HOLEs@(numHole_xCurProj*yy+xx),idObj_,1	//1番ピン
+			repeat numLeads-1	//2番目以降のピン
+				x=xx+round(cos(deg_rad)*rxLeads(cnt) - sin(deg_rad)*ryLeads(cnt)) : y=yy+round(sin(deg_rad)*rxLeads(cnt) + cos(deg_rad)*ryLeads(cnt))
+				insert@HOLE HOLEs@(numHole_xCurProj*y+x),idObj_,2+cnt
+			loop
+		} else {
+			#ifdef DEBUGMODE@
+				insert@HOLE HOLEs@(numHole_xCurProj*yy+xx),idObj_,1 : if (stat) {logmes "足の二重登録 : pos=("+xx+","+yy+") : idObj="+idObj_+"idLead="+1}
+				insert@HOLE HOLEs@(numHole_xCurProj*yy(1)+xx(1)),idObj_,2 : if (stat) {logmes "足の二重登録 : pos=("+xx(1)+","+yy(1)+") : idObj="+idObj_+"idLead="+2}
+			#else
+				insert@HOLE HOLEs@(numHole_xCurProj*yy+xx),idObj_,1 : insert@HOLE HOLEs@(numHole_xCurProj*yy(1)+xx(1)),idObj_,2
+			#endif
+		}
+		return 0
+	
+	#deffunc insertAllPartsAndWires	//全ての部品,配線を基板に挿す
+		if (numObjsCurProj==0) {return}
+		foreach OBJs@
+			objtype=getObjtype@OBJ(OBJs@(cnt))
+			if ((objtype==OBJTYPE_PART)||(objtype==OBJTYPE_WIRE)) {insertPorW cnt}
+		loop
+		return
+#global
+
+#module proj_newObj	//オブジェクト作成処理
+	xReqHoles=0 : yReqHoles=0 : rx_FL2TLL=0 : ry_FL2TLL=0	//未初期化変数警告回避
+	
+	#deffunc newPart int idPMFDat_, int idPMDat_, int deg_, int xhFL_,int yhFL_	//新しい部品の設置
+		/*
+			idPMFDat_	: 部品モデルファミリデータID
+			idPMDat_		: 部品モデルデータID
+			deg_	: 角度(0,90,180,270)
+			xhFL_,yhFL_	: 1番足の希望座標(int)(ピッチ単位)
+	
+			指定された部品をできるだけ希望に沿う位置に配置する
+	
+			[stat]
+				新しい部品のオブジェクトID
+		*/
+		assertEx existPMF(idPMFDat_)
+		assertEx existPmodel@PMFDat(PMFDats@(idPMFDat_))
+		calcPartLeadsBasedMeasurments idPMFDat_,idPMDat_, deg_, xReqHoles,yReqHoles, rx_FL2TLL,ry_FL2TLL
+		assertEx ((xReqHoles<=numHole_xCurProj)&&(yReqHoles<=numHole_yCurProj))
+		xpFL=round(limitf(xhFL_, -rx_FL2TLL, numHole_xCurProj-(xReqHoles+rx_FL2TLL))) : ypFL=round(limitf(yhFL_, -ry_FL2TLL, numHole_yCurProj-(yReqHoles+ry_FL2TLL)))	//1番足の可能な位置
+		namePMF=getNamePMF@PMFDat(PMFDats@(idPMFDat_)) : namePmodel=getNamePmodel@PMFDat(PMFDats@(idPMFDat_),idPMDat_)
+		zOrder=getNewPartZOrder() : ann=getNewPartAnn(idPMFDat_) : vals="","",""
+		/* オブジェクト登録 */
+			newmod OBJs@, OBJ : idObj=stat
+			setObjtype@OBJ OBJs@(idObj), OBJTYPE_PART : setNamePMF@OBJ OBJs@(idObj), namePMF : setNamePmodel@OBJ OBJs@(idObj), namePmodel
+			setIdPMFDat@OBJ OBJs@(idObj), idPMFDat_ : setIdPMDat@OBJ OBJs@(idObj), idPMDat_
+			setDeg@OBJ OBJs@(idObj), deg_ : setxxyy@OBJ OBJs@(idObj), xpFL,ypFL
+			setZOrder@OBJ OBJs@(idObj), zOrder : setAnn@OBJ OBJs@(idObj), ann
+			setVals@OBJ OBJs@(idObj), vals : setComment@OBJ OBJs@(idObj), ""
+			numPartsCurProj++ : numObjsCurProj++
+		insertPorW idObj
+		return idObj
+	
+	#deffunc createWire int side_, int shielded_, int wireColor_, array xx_,array yy_	//配線の作成
+		/*
+			side_	: (WIRESIDE_FRONT,WIRESIDE_BACK)=(表側,裏側)
+			shielded_	: (TRUE,FALSE)=(被覆有り,無し)
+			wireColor_ : 色
+			xx_,yy_	: OBJのxx,yyメンバと同じ形式
+	
+			[stat]
+				オブジェクトID
+		*/
+		assertEx ((side_==WIRESIDE_FRONT)||(side_==WIRESIDE_BACK))
+		assertEx (isTorF(shielded_))
+		assertEx ((xx_(0)>=0)&&(xx_(1)<=numHole_xCurProj-1)&&(yy_(0)>=0)&&(yy_(1)<=numHole_yCurProj-1))
+		ann=getNewWireAnn() : vals_newWire="","",""
+		/* オブジェクト登録 */
+			newmod OBJs@, OBJ : idObj=stat
+			#ifdef DEBUGMODE@
+				logmes "newWire (func createWire) : idObj="+idObj
+			#endif
+			setObjtype@OBJ OBJs@(idObj), OBJTYPE_WIRE : setxxyy@OBJ OBJs@(idObj), xx_,yy_ : setSide@OBJ OBJs@(idObj), side_ : setShielded@OBJ OBJs@(idObj), shielded_
+			setWireColor@OBJ OBJs@(idObj), wireColor_ : setAnn@OBJ OBJs@(idObj), ann : setVals@OBJ OBJs@(idObj), vals_newWire : setComment@OBJ OBJs@(idObj), ""
+			numWiresCurProj++ : numObjsCurProj++
+		#ifdef DEBUGMODE@
+			logmes "newWire (func createWire) : idObj="+idObj
+			logmes "newWire (func createWire) : stat="+stat
+		#endif
+		insertPorW idObj
+		return idObj
+	
+	#deffunc newCmtTag int side_, double xb_,double yb_, int bgColor_, int chrColor_, str comment_	//コメントタグの作成
+		/*
+			side_	: (SIDE_FRONT,SIDE_BACK)=(表側,裏側)
+			xb_,yb_	: 左上座標(ピッチ単位)
+			bgColor_	: 背景色
+			chrColor_	: 文字色
+			comment_ : コメント文字列
+		*/
+		assertEx (side_==SIDE_FRONT)||(side_==SIDE_BACK)
+		assertEx (xb_>=min_posxyCmtTag)&&(xb_<=max_posxCmtTag)&&(yb_>=min_posxyCmtTag)&&(yb_<=max_posyCmtTag)
+		assertEx (strlen(comment_)>=1)
+		ann=getNewCmtTagAnn() : vals="","",""
+		/* オブジェクト登録 */
+			newmod OBJs@, OBJ : idObj=stat
+			setObjtype@OBJ OBJs@(idObj), OBJTYPE_CMTTAG : setxx_dbl@OBJ OBJs@(idObj), xb_ : setyy_dbl@OBJ OBJs@(idObj), yb_ : setSide@OBJ OBJs@(idObj), side_
+			setbgColor@OBJ OBJs@(idObj), bgColor_ : setchrColor@OBJ OBJs@(idObj), chrColor_
+			setAnn@OBJ OBJs@(idObj), ann : setVals@OBJ OBJs@(idObj), vals : setComment@OBJ OBJs@(idObj), comment_
+			numCmtTagsCurProj++ : numObjsCurProj++
+		return idObj
+#global
+
+#module proj_copyObj	//オブジェクトのコピー処理
+	xx=0 : yy=0 : vals=0	//未初期化変数警告回避
+	
+	#deffunc copyObj int idObj_	//オブジェクトのコピー
+		/*
+			idObj : コピー元のオブジェクトのID
+	
+			[stat]
+				新しいオブジェクトのID
+		*/
+		assertEx existObj(idObj_)
+		/* 情報吸い出し */
+			objtype=getObjtype@OBJ(OBJs@(idObj_))
+			namePMF=getNamePMF@OBJ(OBJs@(idObj_)) : namePmodel=getNamePmodel@OBJ(OBJs@(idObj_))
+			idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj_)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj_))
+			deg=getDeg@OBJ(OBJs@(idObj_)) : getxxyy@OBJ OBJs@(idObj_), xx,yy : xx_dbl=getxx_dbl@OBJ(OBJs@(idObj_)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj_))
+			side=getSide@OBJ(OBJs@(idObj_)) : shielded=getShielded@OBJ(OBJs@(idObj_))
+			wireColor=getWireColor@OBJ(OBJs@(idObj_)) : bgColor=getbgColor@OBJ(OBJs@(idObj_)) : chrColor=getchrColor@OBJ(OBJs@(idObj_))
+			getVals@OBJ OBJs@(idObj_), vals : comment=getComment@OBJ(OBJs@(idObj_))
+		/* 複製 */
+			newmod OBJs@, OBJ : idObjNew=stat : setObjtype@OBJ OBJs@(idObjNew), objtype : setVals@OBJ OBJs@(idObjNew), vals : setComment@OBJ OBJs@(idObjNew), comment
+			switch objtype
+				case OBJTYPE_PART
+					ann=getNewPartAnn(idPMFDat) : zOrder=getNewPartZOrder()
+					/* プロパティ登録 */
+						setNamePMF@OBJ OBJs@(idObjNew), namePMF : setNamePmodel@OBJ OBJs@(idObjNew), namePmodel
+						setIdPMFDat@OBJ OBJs@(idObjNew), idPMFDat : setIdPMDat@OBJ OBJs@(idObjNew), idPMDat
+						setDeg@OBJ OBJs@(idObjNew), deg : setxxyy@OBJ OBJs@(idObjNew), xx,yy
+						setZOrder@OBJ OBJs@(idObjNew), zOrder : setAnn@OBJ OBJs@(idObjNew), ann
+					numPartsCurProj++
+				swbreak
+				case OBJTYPE_WIRE
+					ann=getNewWireAnn()
+					/* プロパティ登録 */
+						setxxyy@OBJ OBJs@(idObjNew), xx,yy : setSide@OBJ OBJs@(idObjNew), side
+						setShielded@OBJ OBJs@(idObjNew), shielded : setWireColor@OBJ OBJs@(idObjNew), wireColor : setAnn@OBJ OBJs@(idObjNew), ann
+					numWiresCurProj++
+				swbreak
+				case OBJTYPE_CMTTAG
+					ann=getNewCmtTagAnn()
+					/* プロパティ登録 */
+						setxx_dbl@OBJ OBJs@(idObjNew), xx_dbl : setyy_dbl@OBJ OBJs@(idObjNew), yy_dbl : setSide@OBJ OBJs@(idObjNew), side
+						setbgColor@OBJ OBJs@(idObjNew), bgColor : setchrColor@OBJ OBJs@(idObjNew), chrColor : setAnn@OBJ OBJs@(idObjNew), ann
+					numCmtTagsCurProj++
+				swbreak
+			swend
+			numObjsCurProj++
+			if isPart(idObj_)||(isWire(idObj_)) {insertPorW idObjNew}	//基板に挿す
+		return idObjNew
+#global
+
+#module proj_delObj	//オブジェクトの削除処理
+	xx=0 : yy=0 : xx2=0 : yy2=0	//未初期化変数警告回避
+	
+	#deffunc local deleteObj int idObj_	//オブジェクトを削除する
+		assertEx existObj(idObj_)
+		objtype=getObjtype@OBJ(OBJs@(idObj_))
+		switch objtype
+			case OBJTYPE_PART : pulloutPorW idObj_ : zOrder=getZOrder@OBJ(OBJs@(idObj_)) : delmod OBJs@(idObj_) : numPartsCurProj-- : CloseZOrderInterval zOrder : swbreak
+			case OBJTYPE_WIRE : pulloutPorW idObj_ : delmod OBJs@(idObj_) : numWiresCurProj-- : swbreak
+			case OBJTYPE_CMTTAG : delmod OBJs@(idObj_) : numCmtTagsCurProj-- : swbreak
+		swend
+		numObjsCurProj--
+		return
+		
+	#deffunc delete0LenWires	//長さ0の配線があれば削除する
+		if (numObjsCurProj==0) {return}
+		foreach OBJs@
+			idObj=cnt
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {continue}
+			getxxyy@OBJ OBJs@(idObj), xx,yy
+			if ((xx(0)==xx(1))&&(yy(0)==yy(1))) {deleteObj idObj}
+		loop
+		
+	#deffunc delDupWires	//重複する配線があれば削除する
+		if (numObjsCurProj==0) {return}
+		numDelTgt=0 : dim listDelTgt, numWiresCurProj
+		foreach OBJs@
+			idObj=cnt
+			if (searchLinearIntArray(idObj, listDelTgt, 0, numDelTgt-1)!=-1) {continue}	//既に削除の予定
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {continue}
+			side=getSide@OBJ(OBJs@(idObj)) : shielded=getShielded@OBJ(OBJs@(idObj)) : getxxyy@OBJ OBJs@(idObj), xx,yy
+			foreach OBJs@	//idObjの配線と重複する、IDの大きい配線を探す
+				if (cnt<=idObj) {continue} : idObj2=cnt
+				if (getObjtype@OBJ(OBJs@(idObj2))!=OBJTYPE_WIRE) {continue}
+				if ((getSide@OBJ(OBJs@(idObj2))!=side)||(getShielded@OBJ(OBJs@(idObj2))!=shielded)) {continue}
+				getxxyy@OBJ OBJs@(idObj2), xx2,yy2
+				if (isLineSegmentOverlap_int(xx(0),yy(0),xx(1),yy(1), xx2(0),yy2(0),xx2(1),yy2(1))) {
+					if (searchLinearIntArray(idObj2, listDelTgt, 0, numDelTgt-1)!=-1) {continue}
+					listDelTgt(numDelTgt)=idObj2 : numDelTgt++
+				}
+			loop
+		loop
+		repeat numDelTgt : deleteObj listDelTgt(cnt) : loop
+		return
+	
+	#deffunc local delSinglePath int idObj_	//与えられた配線を含む単一路を削除する
+		//idOj_ : 配線のオブジェクトID
+		assertEx existObj(idObj_)
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		dim listDelTgt, numWiresCurProj : listDelTgt(0)=idObj_ : numDelTgt=1
+		getxxyy@OBJ OBJs@(idObj_), xx,yy
+		listIdObjsInThisHole=0 : listIdLeadsInThisHole=0
+		repeat 2	//始点,終点から始まる両方向に探索
+			x=xx(cnt) : y=yy(cnt)	//探索開始点
+			repeat
+				idxHole=numHole_xCurProj*y+x
+				if (getNumLeads@HOLE(HOLEs@(idxHole))!=2) {break}	//↓足が2本だけ挿さっている
+				if (getNumFrontWires@HOLE(HOLEs@(idxHole))+getNumBackWires@HOLE(HOLEs@(idxHole))!=2) {break}	//配線が2本だけ挿さっている
+				enumLeads@HOLE HOLEs@(idxHole), listIdObjsInThisHole, listIdLeadsInThisHole : assertEx (stat==2)
+				if (searchLinearIntArray(listIdObjsInThisHole(0), listDelTgt, 0,numDelTgt-1)==-1) {
+					idObjNext=listIdObjsInThisHole(0) : tmp=listIdLeadsInThisHole(0)
+				} else {
+					if (searchLinearIntArray(listIdObjsInThisHole(1), listDelTgt, 0,numDelTgt-1)!=-1) {break}	//与えられた単一路がループである場合の対策
+					idObjNext=listIdObjsInThisHole(1) : tmp=listIdLeadsInThisHole(1)}
+				getxxyy@OBJ OBJs@(idObjNext), xx2,yy2
+				if (tmp==1) {x=xx2(1) : y=yy2(1)} else {x=xx2(0) : y=yy2(0)}
+				listDelTgt(numDelTgt)=idObjNext : numDelTgt++
+			loop
+		loop
+		repeat numDelTgt : deleteObj listDelTgt(cnt) : loop
+		return
+#global
+
+#module proj_rotateCircuitry	//基板構成回転処理
+	xx=0 : yy=0	//未初期化変数警告回避
+	
+	#deffunc rotateCircuitry int opt	//基板構成の回転
+		//opt=(RotCkt_P90,RotCkt_M90)=(-90°,+90°)
+		assertEx (flg_projLoaded@)
+		assertEx ((opt==RotCkt_P90)||(opt==RotCkt_M90))
+		/* HOLEsの初期化 */
+			newmod HOLEs@, HOLE : foreach HOLEs@ : delmod HOLEs@(cnt) : loop	//クリア
+			tmp=numHole_xCurProj : numHole_xCurProj=numHole_yCurProj : numHole_yCurProj=tmp : repeat numHole_xCurProj*numHole_yCurProj : newmod HOLEs@, HOLE : loop	//敷き直し
+		initGPCandRegionBuf numHole_xCurProj,numHole_yCurProj
+		/* オブジェクトを回転,基板に挿す */
+			if (numObjsCurProj==0) {return}
+			foreach OBJs@
+				idObj=cnt
+				objtype=getObjType@OBJ(OBJs@(idObj)) : getxxyy@OBJ OBJs@(idObj), xx,yy
+				switch objtype
+					case OBJTYPE_PART
+						deg=getDeg@OBJ(OBJs@(idObj))
+						if (opt==RotCkt_P90) {deg=(deg+90)\360 : tmp=xx : xx=numHole_xCurProj-yy-1 : yy=tmp	//+90°
+						} else {deg=(deg+270)\360 : tmp=xx : xx=yy : yy=numHole_yCurProj-tmp-1}	//-90°
+						setDeg@OBJ OBJs@(idObj), deg
+						setxxyy@OBJ OBJs@(idObj), xx,yy : insertPorW idObj
+						swbreak
+					case OBJTYPE_WIRE
+						if (opt==RotCkt_P90) {repeat 2 : tmp=xx(cnt) : xx(cnt)=numHole_xCurProj-yy(cnt)-1 : yy(cnt)=tmp : loop
+						} else {repeat 2 : tmp=xx(cnt) : xx(cnt)=yy(cnt) : yy(cnt)=numHole_yCurProj-tmp-1 : loop}
+						setxxyy@OBJ OBJs@(idObj), xx,yy : insertPorW idObj
+						swbreak
+					case OBJTYPE_CMTTAG
+						xx_dbl=getxx_dbl@OBJ(OBJs@(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj))
+						if (opt==RotCkt_P90) {tmp=xx_dbl : xx_dbl=double(numHole_xCurProj)-yy_dbl-1.0 : yy_dbl=tmp
+						} else {tmp=xx_dbl : xx_dbl=yy_dbl : yy_dbl=double(numHole_yCurProj-tmp-1.0)}
+						setxx_dbl@OBJ OBJs@(idObj), xx_dbl : setyy_dbl@OBJ OBJs@(idObj), yy_dbl
+					swbreak
+				swend
+			loop
+		return
+	
+	#deffunc int_rotateCircuitry int opt
+		assertEx (isReadOnlyCurProj==FALSE)
+		udrd_progress : rotateCircuitry opt : flg_projModNotSaved@=TRUE
+		xofst_viewGPC@=0 : yofst_viewGPC@=0
+		drawGPCandRegion : refreshFrontAndBackWnd : clearObjInfoOnStatBar : arrangeMenuBarStat
+		return
+#global
+
+#module proj_resizeBoard	//基板サイズ変更処理
+	#defcfunc canResizeBoard int numHole_x_,int numHole_y_	//基板の穴の数を指定された数に変更できるかどうか調べる
+		//numHole_x_,numHole_y_ : 希望穴数
+		assertEx (flg_projLoaded@)
+		if ((numHole_x_<1)||(numHole_y_<1)) {return FALSE}
+		if ((numHole_x_<numHole_xCurProj)||(numHole_y_<numHole_yCurProj)) {	//縮む場合ははみ出しチェックが必要
+			flg_overflow=FALSE
+			/* 足のはみ出しチェック */
+				repeat numHole_xCurProj*numHole_yCurProj
+					x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj
+					if ((x_pitch>numHole_x_-1)||(y_pitch>numHole_y_-1)) {
+						if (getNumLeads@HOLE(HOLEs@(cnt))) {flg_overflow=TRUE : break}
+					}
+				loop : if (flg_overflow) {return FALSE}
+			/* コメントタグのはみ出しチェック */
+				if (numObjsCurProj) {
+					foreach OBJs@
+						idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_CMTTAG) {continue}
+						xx_dbl=getxx_dbl@OBJ(OBJs@(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj))
+						if ((xx_dbl>double(numHole_x_)-1.0+double(offsetGpcTopLeftHole)/pitch2px-0.5)||(yy_dbl>double(numHole_y_)-1.0+double(offsetGpcTopLeftHole)/pitch2px-0.5)) {flg_overflow=TRUE : break}
+					loop : if (flg_overflow) {return FALSE}
+				}
+		}
+		return TRUE
+	
+	#deffunc resizeBoard int numHole_x_,int numHole_y_	//基板の穴の数を指定された数に変更する
+		//numHole_x_,numHole_y_ : 変更後穴数
+		assertEx (flg_projLoaded@)
+		assertEx canResizeBoard(numHole_x_,numHole_y_)
+		numHole_xCurProj=numHole_x_ : numHole_yCurProj=numHole_y_ : buildHOLEsFromOBJs
+		initGPCandRegionBuf numHole_xCurProj,numHole_yCurProj
+		return
+	
+	/* 穴数変更割り込み対応 */
+		#deffunc int_chnumholes
+			assertEx (flg_projLoaded@)
+			assertEx (isReadOnlyCurProj==FALSE)
+			tmp=str(numHole_xCurProj),str(numHole_yCurProj)
+			sendmsg hwndInput@(IDINPUT_x_numHole), WM_SETTEXT, 0, varptr(tmp(0)) : sendmsg hwndInput@(IDINPUT_y_numHole), WM_SETTEXT, 0, varptr(tmp(1))
+			gsel WID_CHNUMHOLES,1 : openlsideWnd SX_CHNUMHOLES : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			return
+		*int_button_chnumholes_do
+			gsel WID_MAIN	//ダイアログのため
+			x=int(bufInput@(IDINPUT_x_numHole)) : y=int(bufInput@(IDINPUT_y_numHole))
+			if ((x<1)||(y<1)) {dialog "それはもはや基板ではありません",1,appName : return}
+			if (canResizeBoard(x,y)==FALSE) {dialog "小さ過ぎます。オブジェクトがはみ出さないようにしてください。",1,appName : return}
+			udrd_progress : resizeBoard x,y
+			pattern_UI_operation_done TRUE
+			gsel WID_CHNUMHOLES,-1
+			return
+		*int_button_chnumholes_cancel
+			closeLsideWnd : gsel WID_CHNUMHOLES,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+			return
+#global
+
+#module proj_slideObjs	//オブジェクトのスライド
+	xx=0 : yy=0	//未初期化変数警告回避
+	
+	#defcfunc canSlideObjs int dx_,int dy_	//オブジェクト全体を指定された量スライドできるかどうか調べる
+		assertEx (flg_projLoaded@)
+		/* 現在の基板上で部品,配線の足の存在が許される領域を求める */
+			x1=limit(dx_,MIN_INT,0)*(-1) : y1=limit(dy_,MIN_INT,0)*(-1)	//左上限界
+			x2=numHole_xCurProj-1-limit(dx_,0,MAX_INT) : y2=numHole_yCurProj-1-limit(dy_,0,MAX_INT)	//右下限界
+		/* 足はみ出しチェック */
+			flg_overflow=FALSE
+			repeat numHole_xCurProj*numHole_yCurProj
+				x_pitch=cnt\numHole_xCurProj : y_pitch=cnt/numHole_xCurProj
+				if ((x_pitch<x1)||(x_pitch>x2)||(y_pitch<y1)||(y_pitch>y2)) {
+					if (getNumLeads@HOLE(HOLEs@(cnt))) {flg_overflow=TRUE : break}
+				}
+			loop : if (flg_overflow) {return FALSE}
+		/* コメントタグはみ出しチェック */
+			if (numObjsCurProj) {
+				foreach OBJs@
+					idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_CMTTAG) {continue}
+					xx_dbl=getxx_dbl@OBJ(OBJs@(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj))
+					if ((xx_dbl+dx_<min_posxyCmtTag)||(xx_dbl+dx_>max_posxCmtTag)||(yy_dbl+dy_<min_posxyCmtTag)||(yy_dbl+dy_>max_posyCmtTag)) {flg_overflow=TRUE : break}
+				loop : if (flg_overflow) {return FALSE}
+			}
+		return TRUE
+	
+	#deffunc slideObjs int dx_,int dy_	//オブジェクト全体のスライド
+		assertEx (flg_projLoaded@)
+		assertEx canSlideObjs(dx_,dy_)
+		if (numObjsCurProj==0) {return}
+		foreach OBJs@
+			idObj=cnt
+			objtype=getObjtype@OBJ(OBJs@(idObj)) : getxxyy@OBJ OBJs@(idObj), xx,yy : xx+=dx_ : yy+=dy_
+			switch objtype
+				case OBJTYPE_PART : pulloutPorW idObj : setxxyy@OBJ OBJs@(idObj), xx,yy : insertPorW idObj : swbreak
+				case OBJTYPE_WIRE : pulloutPorW idObj : xx(1)+dx_ : yy(1)+dy_ : setxxyy@OBJ OBJs@(idObj), xx,yy : insertPorW idObj : swbreak
+				case OBJTYPE_CMTTAG : setxx_dbl@OBJ OBJs@(idObj), getxx_dbl@OBJ(OBJs@(idObj))+dx_ : setyy_dbl@OBJ OBJs@(idObj), getyy_dbl@OBJ(OBJs@(idObj))+dy_ : swbreak
+			swend
+		loop
+		return
+	
+	/* オブジェクトのスライド割り込み対応 */
+		#deffunc int_slideObjs
+			assertEx (flg_projLoaded@)
+			assertEx (isReadOnlyCurProj==FALSE)
+			gsel WID_SLIDEOBJS,1 : openlsideWnd SX_SLIDEOBJS : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			return
+		*int_button_slideObjs_do
+			dx=int(bufInput@(IDINPUT_x_slideObjs)) : dy=int(bufInput@(IDINPUT_y_slideObjs))
+			if (canSlideObjs(dx,dy)==FALSE) {gsel WID_MAIN : dialog "動かし過ぎです。オブジェクトがはみ出さないようにしてください。",1,appName : return}
+			udrd_progress : slideObjs dx,dy
+			pattern_UI_operation_done TRUE
+			gsel WID_SLIDEOBJS,-1
+			return
+		*int_button_slideObjs_cancel
+			closeLsideWnd : gsel WID_SLIDEOBJS,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+			return
+#global
+
+#module proj_isHoleOnLine	//与えられた穴が与えられた配線の上にあるかどうか調べる
+	xx=0 : yy=0	//未初期化変数警告回避
+	
+	#defcfunc isHoleOnLine int idObj_, int x_,int y_, int opt_	//与えられた穴が与えられた配線の上にあるかどうか調べる
+		/*
+			idObj_	: 配線のオブジェクトID
+			x_,y_	: 穴の座標(ピッチ単位)
+			opt_	: (IHOL_ENDPOINT,IHOL_NOENDPOINT)=(端を含む,端を含まない)
+		*/
+		assertEx (flg_projLoaded@)
+		assertEx existObj(idObj_)
+		assertEx (getObjtype@OBJ(OBJs@(idObj_))==OBJTYPE_WIRE)
+		getxxyy@OBJ OBJs@(idObj_), xx,yy
+		xv1=double(xx(0)-x_) : yv1=double(yy(0)-y_) : xv2=double(xx(1)-x_) : yv2=double(yy(1)-y_)	//ベクトル
+		len0=sqrt(powf(xx(1)-xx(0),2)+powf(yy(1)-yy(0),2)) : len1=sqrt(xv1*xv1+yv1*yv1) : len2=sqrt(xv2*xv2+yv2*yv2)
+		if ((len1==0.0)||(len2==0.0)) {if (opt_==IHOL_ENDPOINT) {return TRUE} else {return FALSE}}
+		cos_=(len1*len1+len2*len2-len0*len0)/(2.0*len1*len2)
+		if (absf(cos_+1.0)<EPSILON_ERR) {return TRUE}
+		return FALSE
+#global
+
+#module proj_areWiresParallel	//2本の配線が並行かどうか調べる
+	xx1=0 : yy1=0 : xx2=0 : yy2=0	//未初期化変数警告回避
+	
+	#defcfunc areWiresParallel int idObj1_, int idObj2_	//2本の配線が並行かどうか調べる
+		assertEx (flg_projLoaded@)
+		assertEx (existObj(idObj1_)&&existObj(idObj2_))
+		assertEx ((getObjtype@OBJ(OBJs@(idObj1_))==OBJTYPE_WIRE)&&(getObjtype@OBJ(OBJs@(idObj2_))==OBJTYPE_WIRE))
+		getxxyy@OBJ OBJs@(idObj1_), xx1,yy1 : getxxyy@OBJ OBJs@(idObj2_), xx2,yy2
+		xv1=xx1(1)-xx1(0) : yv1=yy1(1)-yy1(0) : len1=sqrt(xv1*xv1+yv1*yv1)
+		xv2=xx2(1)-xx2(0) : yv2=yy2(1)-yy2(0) : len2=sqrt(xv2*xv2+yv2*yv2)
+		if ((absf(len1)<EPSILON_ERR)||(absf(len2)<EPSILON_ERR)) {return FALSE}
+		cos_=double(xv1*xv2+yv1*yv2)/(len1*len2)
+		if (1.0-absf(cos_)>EPSILON_ERR) {return FALSE}
+		return TRUE
+#global
+
+#module proj_makeJunction	//接続点作成処理
+	
+	xx=0 : yy=0	//未初期化変数警告回避
+	
+	#deffunc makeJunction int x_,int y_, array listIdObjDivExceptions_, int numExceptions_	//与えられた穴の位置に可能ならば接続点を追加する
+		/*
+			与えられた穴がとある配線Wの途中(端を含まない)にあり、かつその穴に別のオブジェクトの足があるならWをその点で分割する。
+			
+			x_,y_	: 穴の座標(int)(ピッチ単位)
+			listIdObjDivExceptions_	: 分割例外オブジェクトIDリスト。このリストにある配線は分割されない。
+			numExceptions_	: 例外の個数
+	
+			[stat]
+				(0,1)=(作成されなかった,された)
+		*/
+		assertEx (flg_projLoaded@)
+		assertEx ((x_>=0)&&(x_<=numHole_xCurProj-1)&&(y_>=0)&&(y_<=numHole_yCurProj-1))
+		assertEx (numExceptions_>=0)
+		if (numObjsCurProj==0) {return 0}
+		flg_jncCreated=FALSE
+		foreach OBJs@	//各配線について調べる
+			idObj=cnt
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {continue}
+			if (getShielded@OBJ(OBJs@(idObj))) {continue}	//被覆線
+			if (searchLinearIntArray(idObj, listIdObjDivExceptions_, 0,numExceptions_-1)!=-1) {continue}	//分割例外
+			side=getSide@OBJ(OBJs@(idObj))
+			getxxyy@OBJ OBJs@(idObj), xx,yy
+			if (((xx(0)==xx(1))||(yy(0)==yy(1)))==FALSE) {continue}	//組子配線でない
+			if (isHoleOnLine(idObj, x_,y_, IHOL_NOENDPOINT)==FALSE) {continue}	//この穴は配線の上にある
+			if (getNumLeads@HOLE(HOLEs@(numHole_xCurProj*y_+x_))==0) {continue}	//この穴には1本以上の足が挿さっている
+			x1=xx(0) : y1=yy(0) : x2=xx(1) : y2=yy(1)
+			pullout@HOLE HOLEs@(numHole_xCurProj*yy(1)+xx(1)),idObj,2 : xx(1)=x_ : yy(1)=y_ : setxxyy@OBJ OBJs@(idObj), xx,yy : insert@HOLE HOLEs@(numHole_xCurProj*yy(1)+xx(1)),idObj,2	//この配線の2番足をこの穴の上に移す
+			#ifdef DEBUGMODE@
+				logmes "expandWire (func makeJunction) : idObj="+idObj
+				if (stat) {logmes "足の二重登録 : pos=("+xx(1)+","+yy(1)+") : idObj="+idObj+"idLead="+2}
+			#endif
+			if (side==WIRESIDE_FRONT) {wireColor=dfltClrFrontBareWire} else {wireColor=dfltClrBackBareWire}
+			wireColor = getWireColor@OBJ(OBJs@(idObj))
+			xx_newWire=x_,x2 : yy_newWire=y_,y2 : createWire side, FALSE, wireColor, xx_newWire,yy_newWire	//先程の配線の2番足のかつての位置とこの穴を結ぶ配線を作る
+			flg_jncCreated=TRUE
+		loop
+		return flg_jncCreated
+#global
+
+#module proj_autoMakeJunctions	//基板上に接続点を置けるだけ置く
+	dummy=0	//未初期化変数警告回避
+	
+	#deffunc autoMakeJunctions	//基板上に接続点を置けるだけ置く
+		//stat=作成された接続点の個数
+		assertEx (flg_projLoaded@)
+		cntNewJncs=0
+		repeat numHole_xCurProj*numHole_yCurProj	//穴を走査
+			if (getNumLeads@HOLE(HOLEs@(cnt))==0) {continue}
+			x=cnt\numHole_xCurProj : y=cnt/numHole_xCurProj
+			makeJunction x,y, dummy,0 : cntNewJncs+=stat
+		loop
+		return cntNewJncs
+#global
+
+#module proj_delNeedlessJuncs	//不要な接続点を削除する
+	xx1=0 : yy1=0 : xx2=0 : yy2=0 : listIdObjs=0 : listIdLeads=0	//未初期化変数警告回避
+	
+	#deffunc delNeedlessJuncs array listIdObjExceptions_, int numExceptions_	//不要な接続点を削除する
+		/*
+			同一直線上にあって重ならない2本の同側組子配線が接続点で結ばれており、かつその接続点が他の足とは接続していない場合にそのその2本の配線を結合して1本にする。
+	
+			listIdObjExceptions_	: 削除例外オブジェクトIDリスト。このリストにあるオブジェクトは削除されない。
+			numExceptions_	: 例外の個数
+		*/
+		assertEx (flg_projLoaded@)
+		assertEx (numExceptions_>=0)
+		if (numObjsCurProj==0) {return}
+		repeat numHole_xCurProj*numHole_yCurProj
+			idHole=cnt : x=cnt\numHole_xCurProj : y=cnt/numHole_xCurProj
+			if (getNumLeads@HOLE(HOLEs@(idHole))!=2) {continue}	//この穴には足が2本挿さっている
+			if ((getNumFrontWires@HOLE(HOLEs@(idHole))!=2)&&((getNumBackWires@HOLE(HOLEs@(idHole))!=2))) {continue}	//この穴には同側配線2本のみが挿さっている
+			enumLeads@HOLE HOLEs@(idHole), listIdObjs, listIdLeads
+			idObj1=listIdObjs(0) : idObj2=listIdObjs(1)
+			if ((searchLinearIntArray(idObj1, listIdObjExceptions_, 0,numExceptions_-1)!=-1)||(searchLinearIntArray(idObj2, listIdObjExceptions_, 0,numExceptions_-1)!=-1)) {break}	//削除例外
+			if (getShielded@OBJ(OBJs@(idObj1))!=getShielded@OBJ(OBJs@(idObj2))) {continue}	//この2本は被覆線同士,裸線同士のどちらかである
+			getxxyy@OBJ OBJs@(idObj1), xx1,yy1 : getxxyy@OBJ OBJs@(idObj2), xx2,yy2
+			if (listIdLeads(0)==1) {x1=xx1(1) : y1=yy1(1)} else {x1=xx1(0) : y1=yy1(0)}	//1本目の、着目している穴に挿さっていない方の足の座標
+			if (listIdLeads(1)==1) {x2=xx2(1) : y2=yy2(1)} else {x2=xx2(0) : y2=yy2(0)}	//2本目〃
+			if (absf(cosAngleBtwn2PlaneVectors(x1-x,y1-y, x2-x,y2-y)+1.0)>EPSILON_ERR) {continue}	//この2本は条件を満たす
+			pulloutPorW idObj1 : xx1=x1,x2 : yy1=y1,y2 : setxxyy@OBJ OBJs@(idObj1), xx1,yy1 : insertPorW idObj1	//1本目を伸ばして2本目を覆う
+			deleteObj@proj_delObj idObj2	//2本目を削除
+		loop
+		return
+#global
+
+#module proj_ann	//アノテーション処理
+	xx=0 : yy=0 : rxLeads=0 : ryLeads=0	//未初期化変数警告回避
+	
+	#defcfunc isAnnPartUsed int ann_, int idPMFDat_	//与えられた部品のアノテーションが使用済みかどうか調べる
+		/*
+			ann_ : 調べたいアノテーション
+			idPMFDat_ : PMFDatのインデックス
+		*/
+		assertEx (flg_projLoaded@)
+		assertEx existPMF(idPMFDat_)
+		if (numObjsCurProj==0) {return FALSE}
+		flg_used=FALSE
+		foreach OBJs@
+			idObj=cnt
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_PART) {continue}
+			if (getIdPMFDat@OBJ(OBJs@(idObj))!=idPMFDat_) {continue}
+			if (getAnn@OBJ(OBJs@(idObj))==ann_) {flg_used=TRUE : break}
+		loop
+		return flg_used
+	
+	#defcfunc isAnnWireUsed int ann_	//与えられた配線のアノテーションが使用済みかどうか調べる
+		//ann_ : 調べたいアノテーション
+		assertEx (flg_projLoaded@)
+		if (numObjsCurProj==0) {return FALSE}
+		flg_used=FALSE
+		foreach OBJs@
+			idObj=cnt
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_WIRE) {continue}
+			if (getAnn@OBJ(OBJs@(idObj))==ann_) {flg_used=TRUE : break}
+		loop
+		return flg_used
+	
+	#defcfunc isAnnCmtTagUsed int ann_	//与えられたコメントタグのアノテーションが使用済みかどうか調べる
+		//ann_ : 調べたいアノテーション
+		assertEx (flg_projLoaded@)
+		if (numObjsCurProj==0) {return FALSE}
+		flg_used=FALSE
+		foreach OBJs@
+			idObj=cnt
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_CMTTAG) {continue}
+			if (getAnn@OBJ(OBJs@(idObj))==ann_) {flg_used=TRUE : break}
+		loop
+		return flg_used
+	
+	#defcfunc getNewPartAnn int idPMFDat_	//新しい部品のアノテーションを取得
+		//idPMFDat_	: OBJの対応するメンバと同じ形式
+		assertEx (flg_projLoaded@)
+		assertEx existPMF(idPMFDat_)
+		if (numPartsCurProj==0) {return 0}
+		dim usedAnnList,numPartsCurProj : cntParts=0
+		foreach OBJs@
+			idObj=cnt
+			if (getObjtype@OBJ(OBJs@(idObj))!=OBJTYPE_PART) {continue}
+			if (getIdPMFDat@OBJ(OBJs@(idObj))!=idPMFDat_) {continue}
+			usedAnnList(cntParts)=getAnn@OBJ(OBJs@(idObj)) : cntParts++
+		loop
+		if (cntParts==0) {return 0}
+		quickSort usedAnnList, 0,cntParts-1, 0
+		if (usedAnnList(0)>0) {return 0}	//0が利用可能
+		newAnn=-1 : repeat cntParts-1 : if (usedAnnList(cnt)+1<usedAnnList(cnt+1)) {newAnn=usedAnnList(cnt)+1 : break} : loop
+		if (newAnn==-1) {newAnn=cntParts}
+		return newAnn
+	
+	#defcfunc getNewWireAnn	//新しい配線のアノテーションを取得
+		assertEx (flg_projLoaded@)
+		if (numWiresCurProj==0) {return 0}
+		dim usedAnnList,numWiresCurProj : cntWires=0
+		foreach OBJs@ : idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))==OBJTYPE_WIRE) {usedAnnList(cntWires)=getAnn@OBJ(OBJs@(idObj)) : cntWires++} : loop
+		quickSort usedAnnList, 0,cntWires-1, 0
+		if (usedAnnList(0)>0) {return 0}	//0が利用可能
+		newAnn=-1 : repeat numWiresCurProj-1 : if (usedAnnList(cnt)+1<usedAnnList(cnt+1)) {newAnn=usedAnnList(cnt)+1 : break} : loop
+		if (newAnn==-1) {newAnn=numWiresCurProj}
+		return newAnn
+	
+	#defcfunc getNewCmtTagAnn	//新しいコメントタグのアノテーションを取得
+		assertEx (flg_projLoaded@)
+		if (numCmtTagsCurProj==0) {return 0}
+		dim usedAnnList,numCmtTagsCurProj : cntCmtTags=0
+		foreach OBJs@ : idObj=cnt : if (getObjtype@OBJ(OBJs@(idObj))==OBJTYPE_CMTTAG) {usedAnnList(cntCmtTags)=getAnn@OBJ(OBJs@(idObj)) : cntCmtTags++} : loop
+		quickSort usedAnnList, 0,cntCmtTags-1, 0
+		if (usedAnnList(0)>0) {return 0}	//0が利用可能
+		newAnn=-1 : repeat numCmtTagsCurProj-1 : if (usedAnnList(cnt)+1<usedAnnList(cnt+1)) {newAnn=usedAnnList(cnt)+1 : break} : loop
+		if (newAnn==-1) {newAnn=numCmtTagsCurProj}
+		return newAnn
+	
+	#deffunc autoAnnotation int opt_	//自動アノテーション
+		/*
+			opt_ : オプション。(OPTAUTOANN_closeGap, OPTAUTOANN_SORT_PX, OPTAUTOANN_SORT_MX, OPTAUTOANN_SORT_PY, OPTAUTOANN_SORT_MY)。意味は見ての通り。
+	
+			ソートに関して、オブジェクトの位置は足群の重心で代表する
+		*/
+		assertEx (flg_projLoaded@)
+		if (numObjsCurProj==0) {return}
+		if (opt_==OPTAUTOANN_closeGap) {	//空白を詰める
+			dim listIdObjs,numObjsCurProj : dim listAnns,numObjsCurProj : cntObj=0 : foreach OBJs@ : idObj=cnt : listIdObjs(cntObj)=idObj : listAnns(cntObj)=getAnn@OBJ(OBJs@(idObj)) : cntObj++ : loop	//オブジェクトIDとアノテーションの組
+			sortval listAnns, 0	//アノテーション順に整列
+			cntAnnWires=0 : dim cntAnnPMFs, numPMFs@ : antAnnCmtTags=0	//アノテーションカウンタ
+			n=0
+			repeat numObjsCurProj	//アノテーション振り直し
+				sortget n,cnt : idObj=listIdObjs(n)
+				objtype=getObjtype@OBJ(OBJs@(idObj))
+				switch objtype
+					case OBJTYPE_PART : idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj)) : setAnn@OBJ OBJs@(idObj), cntAnnPMFs(idPMFDat) : cntAnnPMFs(idPMFDat)++ : swbreak
+					case OBJTYPE_WIRE : setAnn@OBJ OBJs@(idObj), cntAnnWires : cntAnnWires++ : swbreak
+					case OBJTYPE_CMTTAG : setAnn@OBJ OBJs@(idObj), antAnnCmtTags : antAnnCmtTags++ : swbreak
+				swend
+			loop
+		}
+		if ((opt_>=OPTAUTOANN_SORT_PX)&&(opt_<=OPTAUTOANN_SORT_MY)) {	//位置でソートする
+			/* オブジェクトの座標をリスト化 */
+				dim listIdObjs,numObjsCurProj : ddim listXObjs,numObjsCurProj : ddim listYObjs,numObjsCurProj
+				cntObj=0	//処理済みオブジェクトの数
+				foreach OBJs@
+					idObj=cnt : listIdObjs(cntObj)=idObj
+					getxxyy@OBJ OBJs@(idObj), xx,yy
+					objtype=getObjtype@OBJ(OBJs@(idObj))
+					switch objtype
+						case OBJTYPE_PART
+							idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj))
+							deg_rad=deg2rad(getDeg@OBJ(OBJs@(idObj)))
+							numLeads=getNumLeads@PMFDat(PMFDats@(idPMFDat),idPMDat) : dupRxyLeads@PMFDat PMFDats@(idPMFDat),idPMDat, rxLeads,ryLeads
+							xg=double(xx) : yg=double(yy) : repeat numLeads-1 : xg+=double(xx)+round(cos(deg_rad)*rxLeads(cnt) - sin(deg_rad)*ryLeads(cnt)) : yg+=double(yy)+round(sin(deg_rad)*rxLeads(cnt) + cos(deg_rad)*ryLeads(cnt)) : loop : xg/=numLeads : yg/=numLeads
+							swbreak
+						case OBJTYPE_WIRE : xg=0.5*(xx+xx(1)) : yg=0.5*(yy+yy(1)) : swbreak
+						case OBJTYPE_CMTTAG : xg=double(xx) : yg=double(yy) : swbreak
+					swend
+					listXObjs(cntObj)=xg : listYObjs(cntObj)=yg : cntObj++
+				loop
+			switch opt_
+				case OPTAUTOANN_SORT_PX : sortval listXObjs, 0 : swbreak
+				case OPTAUTOANN_SORT_MX : sortval listXObjs, 1 : swbreak
+				case OPTAUTOANN_SORT_PY : sortval listYObjs, 0 : swbreak
+				case OPTAUTOANN_SORT_MY : sortval listYObjs, 1 : swbreak
+			swend
+			dim annCnt_parts, numPMFs@ : annCnt_wires=0 : antAnnCmtTags=0	//アノテーションカウンタ
+			repeat numObjsCurProj
+				sortget n,cnt : idObj=listIdObjs(n)
+				objtype=getObjtype@OBJ(OBJs@(idObj))
+				switch objtype
+					case OBJTYPE_PART : idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj)) : setAnn@OBJ OBJs@(idObj), annCnt_parts(idPMFDat) : annCnt_parts(idPMFDat)++ : swbreak
+					case OBJTYPE_WIRE : setAnn@OBJ OBJs@(idObj), annCnt_wires : annCnt_wires++ : swbreak
+					case OBJTYPE_CMTTAG : setAnn@OBJ OBJs@(idObj), antAnnCmtTags : antAnnCmtTags++ : swbreak
+				swend
+			loop
+		}
+		return
+	
+	/* 自動アノテーション割り込み対応 */
+		#deffunc int_autoAnn
+			assertEx (flg_projLoaded@)
+			assertEx (isReadOnlyCurProj==FALSE)
+			gsel WID_AUTOANN,1 : openlsideWnd SX_AUTOANN : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			return
+		*int_button_autoAnn_do
+			udrd_progress : autoAnnotation statCombox@(IDCOMBOX_autoAnn)
+			pattern_UI_operation_done TRUE
+			gsel WID_AUTOANN,-1
+			return
+		*int_button_autoAnn_cancel
+			closeLsideWnd : gsel WID_AUTOANN,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+			return
+#global
+
+#module proj_mergeBoard	//別の基板を現在の基板に統合する
+	buf="" : dxSlide=0 : dySlide=0	//未初期化変数警告回避
+
+	/* 基板統合割り込み対応 */
+		#deffunc int_mergeBoard
+			assertEx (flg_projLoaded@)
+			assertEx (isReadOnlyCurProj==FALSE)
+			gsel WID_MERGE_BOARD,1 : openlsideWnd SX_MERGE_BOARD : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			return
+		*int_button_cancel_mergeBoard
+			closeLsideWnd : gsel WID_MERGE_BOARD,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat
+			return
+		*int_button_do_mergeBoard
+			path=bufInput@(IDINPUT_path_mergeBoard)
+			gsel WID_MAIN	//ダイアログのため
+			exist path : if (strsize==-1) {dialog "ファイルが見つかりません",1,appName@ : return}
+			mbd="" : notesel mbd : noteload path
+			msg="" : loadBDdata mbd, msg, TRUE	//シミュレーションモードでロードしてファイルの整合性を調べる
+			if (stat == LBDD_OK) {
+				udrd_progress : mergeBoard mbd, int(bufInput@(IDINPUT_x_mergeBoard)),int(bufInput@(IDINPUT_y_mergeBoard))
+				pattern_UI_operation_done TRUE
+				return
+			} else {pattern_UI_mbdLoadError msg}
+			
+		*int_button_browse_mergeBoard
+			dialog nameExt,16,appName@+"回路図ファイル"
+			if (stat==0) {return}
+			buf=refstr : sendmsg hwndInput@(IDINPUT_path_mergeBoard), WM_SETTEXT, 0, varptr(buf)
+			return
+#global
+
+#module proj_patterns_UI	//UI操作パターン
+	#deffunc pattern_UI_operation_done int flg_projModNotSaved_	//操作完了
+		assertEx (flg_projLoaded@)
+		flg_projModNotSaved@=flg_projModNotSaved_
+		closeLsideWnd : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat : arrangeStatBarStat
+		drawGPCandRegion : refreshFrontAndBackWnd
+		return
+	
+	#deffunc pattern_UI_openProj str path_	//プロジェクト読込
+		gsel WID_MAIN	//ダイアログのため
+		exist path_ : if (strsize==-1) {dialog "ファイルが見つかりません",1,appName@ : return}
+		mbd = "" : notesel mbd : noteload path_
+		msg = "" : loadBDdata mbd, msg, FALSE
+		if (stat == LBDD_OK) {
+			projPath@=path_
+			xofst_viewGPC@=0 : yofst_viewGPC@=0 : refreshFrontAndBackWnd
+			pattern_UI_operation_done FALSE
+			gsel WID_MAIN : title appName@+" - "+getpath(projPath@,8)	//タイトルバーにファイル名を表示
+		} else {pattern_UI_mbdLoadError msg}
+		return
+
+
+	#deffunc pattern_UI_mbdLoadError str msg_	//mbdファイルをロードできない場合のUIの挙動
+		switch stat
+			case LBDD_BROKEN: dialog "ファイルが壊れています\n\nメッセージ : "+msg,1,appName@ : return
+			case LBDD_TOOOLD:
+				dialog "形式が古すぎます。新しい形式 " + MBDVER_DS_STR@ + " に変換してください。\n\nこのファイルの形式バージョン : " + msg + "\n\n変換用プログラムのダウンロードページを開きますか？", 3, appName@
+				if (stat == 6) {exec "http://motchy99.blog.fc2.com/blog-entry-122.html", 16}
+				return
+			case LBDD_TOONEW:
+				dialog "形式が新しすぎます。最新版のアプリで試してみてください。\n\nこのファイルの形式バージョン : " + msg + "\n\n最新版のダウンロードページを開きますか？", 3, appName@
+				if (stat == 6) {exec "http://motchy99.blog.fc2.com/blog-entry-73.html", 16}
+				return
+			case LBDD_UNKNOWNPMF: dialog "未知の部品モデルファミリ「"+msg+"」が使用されているため読み込めません。対応するライブラリをインストールしてください。",1,appName@ : return
+			case LBDD_UNKNOWNPM:
+				buf = "" : split msg, "/", buf
+				dialog "未知の部品モデルが使用されているため読み込めません。対応するライブラリをインストールしてください。\n\nモデルファミリ名 : "+buf(0)+"\nモデル名 : "+buf(1),1,appName@
+				return
+		swend
+		return
+#global

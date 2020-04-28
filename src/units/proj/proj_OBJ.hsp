@@ -1,0 +1,137 @@
+/*
+	OBJ定義
+*/
+#module OBJ objtype, namePMF,namePmodel,idPMFDat,idPMDat, deg, xx,yy, sx,sy, xx_dbl,yy_dbl, zOrder, side, shielded, wireColor, ann, vals,comment, bgColor,chrColor	//部品,ワイヤモジュール変数。1つの部品,配線の情報を保持。
+	/*
+		objtype	: オブジェクトタイプ。(OBJTYPE_PART,OBJTYPE_WIRE,OBJTYPE_CMTTAG)
+		namePMF		: (部品の場合->)PMF名
+		namePmodel	: (部品の場合->)Pmodel名
+		idPMFDat	: (部品の場合->)PMFDatにおけるインデックス
+		idPMDat		: (部品の場合->)PMDatにおけるインデックス
+		deg				: (部品の場合->)角度。(0,90,180,270)
+		xx,yy			: (部品の場合->)1番目の足のピッチ座標。(配線の場合->)始点,終点のピッチ座標。
+		xx_dbl,yy_dbl	: (コメントタグの場合->)左上座標(ピッチ単位)
+		sx, sy			: (コメントタグの場合->)x,yサイズ(ピッチ単位)
+		zOrder			: (部品の場合->)zオーダー。値の小さいものほど下にある(先に描画される)。
+		side			: (配線,コメントタグの場合->)(SIDE_FRONT,SIDE_BACK)=(表側,裏側)
+		shielded		: (配線の場合->)(TRUE,FALSE)=(被覆有り,無し)
+		wireColor		: (配線の場合->)色のRGBコード
+		bgColor		: (コメントタグの場合->)背景色
+		chrColor	: (コメントタグの場合->)文字色
+		ann		: アノテーション
+		vals	: val1～val3
+		comment	: コメント
+	*/
+	id=0
+	#modinit
+		objtype=0
+		namePMF=DONTCARE_STR : namePmodel=DONTCARE_STR : idPMFDat=DONTCARE_INT : idPMDat=DONTCARE_INT
+		deg=DONTCARE_INT : xx=DONTCARE_INT : yy=DONTCARE_INT : sx=DONTCARE_DBL : sy=DONTCARE_DBL : xx_dbl=DONTCARE_DBL : yy_dbl=DONTCARE_DBL
+		zOrder=DONTCARE_INT : side=DONTCARE_INT : shielded=DONTCARE_INT : wireColor=DONTCARE_INT : chrColor=DONTCARE_INT : ann=DONTCARE_INT
+		vals=DONTCARE_STR,DONTCARE_STR,DONTCARE_STR : comment=DONTCARE_STR
+		mref id,2
+		return id
+	
+	#modcfunc local getObjtype
+		return objtype
+	#modfunc local setObjtype int objtype_
+		objtype=objtype_
+		return
+	#modcfunc local getNamePMF
+		return namePMF
+	#modfunc local setNamePMF str namePMF_
+		namePMF=namePMF_
+		return
+	#modcfunc local getNamePmodel
+		return namePmodel
+	#modfunc local setNamePmodel str namePmodel_
+		namePmodel=namePmodel_
+		return
+	#modcfunc local getIdPMFDat
+		return idPMFDat
+	#modfunc local setIdPMFDat int idPMFDat_
+		idPMFDat=idPMFDat_
+		return
+	#modcfunc local getIdPMDat
+		return idPMDat
+	#modfunc local setIdPMDat int idPMDat_
+		idPMDat=idPMDat_
+		return
+	#modcfunc local getDeg
+		return deg
+	#modfunc local setDeg int deg_
+		deg=deg_
+		return
+	#modfunc local getxxyy array xx_, array yy_
+		xx_=xx : yy_=yy : if (objtype==OBJTYPE_WIRE) {xx_(1)=xx(1) : yy_(1)=yy(1)}
+		return
+	#modfunc local setxxyy array xx_, array yy_
+		xx=xx_ : yy=yy_ : if (objtype==OBJTYPE_WIRE) {xx(1)=xx_(1) : yy(1)=yy_(1)}
+		return
+	#modcfunc local getxx_dbl
+		return xx_dbl
+	#modfunc local setxx_dbl double xx_dbl_
+		xx_dbl=xx_dbl_
+		return
+	#modcfunc local getyy_dbl
+		return yy_dbl
+	#modfunc local setyy_dbl double yy_dbl_
+		yy_dbl=yy_dbl_
+		return
+	#modfunc local getsxsy var sx_, var sy_
+		sx_ = sx : sy_ = sy
+		return
+	#modfunc local setsxsy int sx_, int sy_
+		sx = sx_ : sy = sy_
+		return
+	#modcfunc local getZOrder
+		return zOrder
+	#modfunc local setZOrder int zOrder_
+		zOrder=zOrder_
+		return
+	#modcfunc local getSide
+		return side
+	#modfunc local setSide int side_
+		side=side_
+		return
+	#modcfunc local getShielded
+		return shielded
+	#modfunc local setShielded int shielded_
+		shielded=shielded_
+		return
+	#modcfunc local getWireColor
+		return wireColor
+	#modfunc local setWireColor int wireColor_
+		wireColor=wireColor_
+		return
+	#modcfunc local getbgColor
+		return bgColor
+	#modfunc local setbgColor int bgColor_
+		bgColor=bgColor_
+		return
+	#modcfunc local getchrColor
+		return chrColor
+	#modfunc local setchrColor int chrColor_
+		chrColor=chrColor_
+		return
+	#modcfunc local getAnn
+		return ann
+	#modfunc local setAnn int ann_
+		ann=ann_
+		return
+	#modfunc local getVals array vals_
+		repeat 3 : vals_(cnt)=vals(cnt) : loop
+		return
+	#modfunc local setVals array vals_
+		assertEx (vartype(vals_)==vartype("str"))
+		repeat 3 : vals(cnt)=vals_(cnt) : loop
+		return
+	#modcfunc local getComment
+		return comment
+	#modfunc local setComment str comment_
+		comment=comment_
+		gsel WID_GENERAL : font FONT_CMTTAG, FONTSIZE_CMTTAG
+		dim xyNeed, 2 : getTextBound comment, xyNeed
+		sx = metric_client2Board(xyNeed(0)) : sy = metric_client2Board(xyNeed(1))
+		return
+#global

@@ -1,0 +1,7 @@
+{
+	"explanation":	"ピンソ\ケット。1x4",
+	"numLeads":	4,
+	"rxLeads":	[1, 2, 3],
+	"ryLeads":	[0, 0, 0],
+	"posLeadInImg":	[5, 5]
+}

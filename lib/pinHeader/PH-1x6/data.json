@@ -1,0 +1,7 @@
+{
+	"explanation":	"ピンヘッダ。1x6",
+	"numLeads":	6,
+	"rxLeads":	[1, 2, 3, 4, 5],
+	"ryLeads":	[0, 0, 0, 0, 0],
+	"posLeadInImg":	[5, 5]
+}

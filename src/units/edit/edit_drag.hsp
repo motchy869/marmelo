@@ -1,0 +1,306 @@
+#module edit_drag	//ドラッグ処理
+	/*
+	[用語]
+	
+	バウンディングボックス : ドラッグされる全ての足を囲む必要十分な大きさの矩形
+	*/
+	/*
+		[変数定義]
+		
+		numPartsDrg : ドラッグする部品の数
+		listIdObjsPartsDrg : ドラッグする部品のオブジェクトIDのリスト
+		numWiresDrg : ドラッグする配線の数
+		listIdObjsWiresDrg : ドラッグする配線のオブジェクトIDのリスト
+		listFixedLeadsWiresDrg : ドラッグする配線の固定足の番号のリスト。要素の並びはlistIdObjsWiresDrg_と対応。内容 : (0,1,2)=(固定足無し,1番足固定,2番足固定)
+		numCmtTagsDrg : ドラッグするコメントタグの数
+		listIDObjsCmtTagsDrg : ドラッグするコメントタグのオブジェクトIDのリスト
+		xTLBB,yTLBB,xBRBB,yBRBB : バウンディングボックスの左上,右下座標(ピッチ単位)(int)
+		sxBB,syBB : バウンディングボックスの寸法。x,y方向の穴の数。(ピッチ単位)(int)
+		rxTLBB2m,ryTLBB2m : バウンディングボックスの左上のマウスカーソルに対する理想相対座標(ピッチ単位)(double)
+		listXFLPartsDrg,listYFLPartsDrg : 「ドラッグする部品の1番足のバウンディングボックスの左上に対する相対座標」のリスト。要素の並びはlistIdObjsPartsDrgと対応
+		listXFLWiresDrg,listYFLWiresDrg : 「ドラッグする配線の1番足のバウンディングボックスの左上に対する相対座標」のリスト。要素の並びはlistIdObjsWiresDrg_と対応
+		listXSLWiresDrg,listYSLWiresDrg : ドラッグする配線の2番足の〃
+		listRx2BBCmtTagsDrg,listRy2BBCmtTagsDrg : 「ドラッグするコメントタグのバウンディングボックスの左上に対する相対座標(double)」のリスト。要素の並びはlistIDObjsCmtTagsDrgと対応。
+		listRx2CsrCmtTagsDrg,listRy2CsrCmtTagsDrg : 「ドラッグするコメントタグのマウスカーソルに対する相対座標(double)」のリスト。要素の並びはlistIDObjsCmtTagsDrgと対応。コメントタグはlistRx2BBCmtTagsDrg,listRy2BBCmtTagsDrgで規定される位置から±0.5ピッチ以内の範囲でマウスカーソルに追従する。
+	*/
+	xTLBB=0 : yTLBB=0 : xBRBB=0 : yBRBB=0 : xx=0 : yy=0 : rxLeads=0 : ryLeads=0 : listIdObjs_thisHole=0 : listIdLeads_thisHole=0 : dummy=0	//未初期化変数警告回避
+	
+	#defcfunc local isLeadWireDragged int idObj_, int idLead_, int numWiresDrg_, array listIdObjsWiresDrg_, array listFixedLeadsWiresDrg_	//与えられた配線の足がドラッグ対象になっているかどうか調べる
+		/*
+			idObj_ : 調べたい配線のオブジェクトID
+			idLead_ : 調べたい足の番号
+			numWiresDrg_ : numWiresDrg互換データ
+			listIdObjsWiresDrg_ : listIdObjsWiresDrg互換データ
+			listFixedLeadsWiresDrg_ : listFixedLeadsWiresDrg互換データ
+		*/
+		rc=FALSE
+		repeat numWiresDrg_
+			if (listIdObjsWiresDrg_(cnt)==idObj_) {
+				if ((idLead_==1)&&((listFixedLeadsWiresDrg_(cnt)&1)==0))||((idLead_==2)&&((listFixedLeadsWiresDrg_(cnt)&2)==0)) {rc=TRUE : break}
+			}
+		loop
+		return rc
+	
+	#deffunc local getFollowWires int numPartsDrg_, array listIdObjsPartsDrg_, int numWiresDrgConfirmed_, array listIdObjsWiresDrgConfirmed_, array listFixedLeadsWiresDrgConfirmed_, var numWiresDrgExtended_, array listIdObjsWiresDrgExtended_, array listFixedLeadsWiresDrgExtended_	//現時点でドラッグが確定しているオブジェクトから追従配線を求める
+		/*
+			(in) numPartsDrg_ : numPartsDrg互換データ
+			(in) listIdObjsPartsDrg_ : listIdObjsPartsDrg互換データ
+			(in) numWiresDrgConfirmed_ : 現時点でドラッグが確定している配線の数
+			(in) listIdObjsWiresDrgConfirmed_ : 〃のオブジェクトIDのリスト
+			(in) listFixedLeadsWiresDrgConfirmed_ : 〃の固定足の番号のリスト。listFixedLeadsWiresDrg互換データ。
+			(out) numWiresDrgExtended_ : 求まった追従配線を含めたドラッグする配線の数
+			(out) listIdObjsWiresDrgConfirmed_ : 〃のオブジェクトIDのリスト
+			(out) listFixedLeadsWiresDrgExtended_ : 〃の固定足の番号のリスト。listFixedLeadsWiresDrg互換データ。
+		*/
+		numWiresDrgExtended_=numWiresDrgConfirmed_ : repeat numWiresDrgConfirmed_ : listIdObjsWiresDrgExtended_(cnt) = listIdObjsWiresDrgConfirmed_(cnt) : listFixedLeadsWiresDrgExtended_(cnt) = listFixedLeadsWiresDrgConfirmed_(cnt) : loop
+		dim flgsChkHoles, numHole_xCurProj,numHole_yCurProj	//穴のチェックフラグリスト。チェック済みの穴にはTRUEが当てられる。チェック済みとは、その穴と、その穴に足を降ろしているドラッグされるオブジェクトとの間で宜しく処理がなされた状態を言う。
+		repeat numPartsDrg_	//各部品を調べる
+			idObj = listIdObjsPartsDrg_(cnt)
+			getxxyy@OBJ OBJs@(idObj), xx,yy
+			idPMFDat = getIdPMFDat@OBJ(OBJs@(idObj)) : idPMDat = getIdPMDat@OBJ(OBJs@(idObj))
+			deg_rad = deg2rad(getDeg@OBJ(OBJs@(idObj)))
+			numLeads = getNumLeads@PMFDat(PMFDats@(idPMFDat),idPMDat) : dupRxyLeads@PMFDat PMFDats@(idPMFDat),idPMDat, rxLeads,ryLeads
+			repeat numLeads	//各足についてその挿さっている穴を調べる
+				idLead = 1+cnt
+				if (idLead == 1) {x=xx : y=yy} else {x = xx+round(cos(deg_rad)*rxLeads(cnt-1) - sin(deg_rad)*ryLeads(cnt-1)) : y = yy+round(sin(deg_rad)*rxLeads(cnt-1) + cos(deg_rad)*ryLeads(cnt-1))}
+				if (flgsChkHoles(x,y) == TRUE) {continue}
+				/* その穴に挿さっているオブジェクトで、未だドラッグ対象に加えられていないものを列挙する */
+					enumLeads@HOLE HOLEs@(numHole_xCurProj*y+x), listIdObjs_thisHole, listIdLeads_thisHole : numLeads_thisHole = stat
+					numLeadsPartsNotDrag_thisHole = 0 : numLeadsWiresNotDrag_thisHole = 0
+					repeat numLeads_thisHole
+						idObj2 = listIdObjs_thisHole(cnt) : idLead2 = listIdLeads_thisHole(cnt)
+						if (getObjtype@OBJ(OBJs@(idObj2)) == OBJTYPE_PART) {
+							if (searchLinearIntArray(idObj2, listIdObjsPartsDrg_, 0,numPartsDrg_-1) != -1) {continue}
+							numLeadsPartsNotDrag_thisHole++
+						} else {
+							if (isLeadWireDragged(idObj2, idLead2, numWiresDrgExtended_, listIdObjsWiresDrgExtended_, listFixedLeadsWiresDrgExtended_) == TRUE) {continue}
+							listIdObjsWiresNotDrag_thisHole(numLeadsWiresNotDrag_thisHole) = idObj2 : listIdLeadsWiresNotDrag_thisHole(numLeadsWiresNotDrag_thisHole) = idLead2 : numLeadsWiresNotDrag_thisHole++
+						}
+					loop
+				if (numLeadsPartsNotDrag_thisHole) {	//ドラッグされない部品の足が1本でもある場合
+					/* その穴とドラッグする部品の足を結ぶ裏配線を作ってドラッグ対象に加える */
+						xx_newWire=x,x : yy_newWire=y,y : createWire WIRESIDE_BACK, FALSE, dfltClrBackBareWire, xx_newWire,yy_newWire
+						listIdObjsWiresDrgExtended_(numWiresDrgExtended_) = stat : listFixedLeadsWiresDrgExtended_(numWiresDrgExtended_) = 1 : numWiresDrgExtended_++
+				} else {
+					if (numLeadsWiresNotDrag_thisHole) {
+						/* その穴に挿さっている配線の足を全てドラッグ対象に加える */
+							repeat numLeadsWiresNotDrag_thisHole
+								idObj2 = listIdObjsWiresNotDrag_thisHole(cnt) : idLead2 = listIdLeadsWiresNotDrag_thisHole(cnt)
+								/* 同じ配線の別の足が既にドラッグ対象になっている可能性に注意 */
+									flg_otherLeadAlreadyDragged = FALSE
+									repeat numWiresDrgExtended_
+										if (listIdObjsWiresDrgExtended_(cnt) == idObj2) {listFixedLeadsWiresDrgExtended_(cnt) = 0 : flg_otherLeadAlreadyDragged = TRUE : break}
+									loop
+								if (flg_otherLeadAlreadyDragged) {continue}
+								listIdObjsWiresDrgExtended_(numWiresDrgExtended_) = idObj2 : listFixedLeadsWiresDrgExtended_(numWiresDrgExtended_) = 1+(2-idLead2) : numWiresDrgExtended_++
+							loop
+					}
+				}
+				flgsChkHoles(x,y)=TRUE
+			loop
+		loop
+		repeat numWiresDrgConfirmed_	//各配線を調べる
+			idObj = listIdObjsWiresDrgConfirmed_(cnt) : fixedLead = listFixedLeadsWiresDrgConfirmed_(cnt)
+			getxxyy@OBJ OBJs@(idObj), xx,yy
+			repeat 2
+				idLead=1+cnt : x=xx(cnt) : y=yy(cnt)
+				if ((idLead==1)&&((fixedLead&1)==1)) {continue} : if ((idLead==2)&&((fixedLead&2)==2)) {continue}
+				if (flgsChkHoles(x,y)==TRUE) {continue}
+				/* その穴に挿さっているオブジェクトで、未だドラッグ対象に加えられていないものを列挙する */
+					enumLeads@HOLE HOLEs@(numHole_xCurProj*y+x), listIdObjs_thisHole, listIdLeads_thisHole : numLeads_thisHole = stat
+					numLeadsPartsNotDrag_thisHole = 0 : numLeadsWiresNotDrag_thisHole = 0
+					repeat numLeads_thisHole
+						idObj2 = listIdObjs_thisHole(cnt) : idLead2 = listIdLeads_thisHole(cnt)
+						if (getObjtype@OBJ(OBJs@(idObj2)) == OBJTYPE_PART) {
+							if (searchLinearIntArray(idObj2, listIdObjsPartsDrg_, 0,numPartsDrg_-1) != -1) {continue}
+							numLeadsPartsNotDrag_thisHole++
+						} else {
+							if (isLeadWireDragged(idObj2, idLead2, numWiresDrgExtended_, listIdObjsWiresDrgExtended_, listFixedLeadsWiresDrgExtended_) == TRUE) {continue}
+							listIdObjsWiresNotDrag_thisHole(numLeadsWiresNotDrag_thisHole) = idObj2 : listIdLeadsWiresNotDrag_thisHole(numLeadsWiresNotDrag_thisHole) = idLead2 : numLeadsWiresNotDrag_thisHole++
+						}
+					loop
+				if (numLeadsPartsNotDrag_thisHole) {	//ドラッグされない部品の足が1本でもある場合
+					/* その穴とドラッグする配線の足を結ぶ裏配線を作ってドラッグ対象に加える */
+						xx_newWire=x,x : yy_newWire=y,y : createWire WIRESIDE_BACK, FALSE, dfltClrBackBareWire, xx_newWire,yy_newWire
+						listIdObjsWiresDrgExtended_(numWiresDrgExtended_) = stat : listFixedLeadsWiresDrgExtended_(numWiresDrgExtended_) = 1 : numWiresDrgExtended_++
+				} else {
+					if (numLeadsWiresNotDrag_thisHole) {
+						/* その穴に挿さっている配線の足を全てドラッグ対象に加える */
+							repeat numLeadsWiresNotDrag_thisHole
+								idObj2 = listIdObjsWiresNotDrag_thisHole(cnt) : idLead2 = listIdLeadsWiresNotDrag_thisHole(cnt)
+								/* 同じ配線の別の足が既にドラッグ対象になっている可能性に注意 */
+									flg_otherLeadAlreadyDragged = FALSE
+									repeat numWiresDrgExtended_
+										if (listIdObjsWiresDrgExtended_(cnt) == idObj2) {listFixedLeadsWiresDrgExtended_(cnt) = 0 : flg_otherLeadAlreadyDragged = TRUE : break}
+									loop
+								if (flg_otherLeadAlreadyDragged) {continue}
+								listIdObjsWiresDrgExtended_(numWiresDrgExtended_) = idObj2 : listFixedLeadsWiresDrgExtended_(numWiresDrgExtended_) = 1+(2-idLead2) : numWiresDrgExtended_++
+							loop
+					}
+				}
+				flgsChkHoles(x,y)=TRUE
+			loop
+		loop
+		return
+	
+	#deffunc local expandBB int x_,int y_	//与えられた点を含むようにバウンディングボックスを必要なら拡張する
+		assertEx ((x_>=0)&&(y_>=0))
+		if (xTLBB>x_) {xTLBB=x_} : if (yTLBB>y_) {yTLBB=y_} : if (xBRBB<x_) {xBRBB=x_} : if (yBRBB<y_) {yBRBB=y_}
+		sxBB=xBRBB-xTLBB+1 : syBB=yBRBB-yTLBB+1
+		return
+	
+	#deffunc local startDrag int numPartsDrg_, array listIdObjsPartsDrg_, int numWiresDrg_, array listIdObjsWiresDrg_, array listFixedLeadsWiresDrg_, int numCmtTagsDrg_, array listIDObjsCmtTagsDrg_, double mxb_,double myb_	//ドラッグ開始
+		/*
+			(in) numPartsDrg_ : numPartsDrg互換データ
+			(in) listIdObjsPartsDrg_ : listIdObjsPartsDrg互換データ
+			(in) numWiresDrg_ : numWiresDrg互換データ
+			(in) listIdObjsWiresDrg_ : listIdObjsWiresDrg互換データ
+			(in) listFixedLeadsWiresDrg_ : listFixedLeadsWiresDrg互換データ
+			(in) numCmtTagsDrg_ : numCmtTagsDrg互換データ
+			(in) listIDObjsCmtTagsDrg_ : listIDObjsCmtTagsDrg互換データ
+			(in) mxb_,myb_ : マウスカーソルの基板座標(ピッチ単位)(double)
+		*/
+		assertEx (numPartsDrg_+numWiresDrg_+numCmtTagsDrg_>=1)
+		/* データ移行 */
+			numPartsDrg=numPartsDrg_ : repeat numPartsDrg : listIdObjsPartsDrg(cnt)=listIdObjsPartsDrg_(cnt) : loop
+			numWiresDrg=numWiresDrg_ : repeat numWiresDrg : listIdObjsWiresDrg(cnt)=listIdObjsWiresDrg_(cnt) : listFixedLeadsWiresDrg(cnt)=listFixedLeadsWiresDrg_(cnt) : loop
+			numCmtTagsDrg=numCmtTagsDrg_ : repeat numCmtTagsDrg : listIDObjsCmtTagsDrg(cnt)=listIDObjsCmtTagsDrg_(cnt) : loop
+		/* バウンディングボックスを計算 */
+			xTLBB=numHole_xCurProj-1 : yTLBB=numHole_yCurProj-1 : xBRBB=0 : yBRBB=0
+			repeat numPartsDrg
+				idObj=listIdObjsPartsDrg(cnt)
+				getxxyy@OBJ OBJs@(idObj), xx,yy
+				idPMFDat=getIdPMFDat@OBJ(OBJs@(idObj)) : idPMDat=getIdPMDat@OBJ(OBJs@(idObj))
+				deg_rad=deg2rad(getDeg@OBJ(OBJs@(idObj)))
+				numLeads=getNumLeads@PMFDat(PMFDats@(idPMFDat),idPMDat) : dupRxyLeads@PMFDat PMFDats@(idPMFDat),idPMDat, rxLeads,ryLeads
+				repeat numLeads
+					if (cnt==0) {x=xx : y=yy} else {x=xx+round(cos(deg_rad)*rxLeads(cnt-1) - sin(deg_rad)*ryLeads(cnt-1)) : y=yy+round(sin(deg_rad)*rxLeads(cnt-1) + cos(deg_rad)*ryLeads(cnt-1))} : expandBB x,y
+				loop
+			loop
+			repeat numWiresDrg
+				idObj=listIdObjsWiresDrg(cnt) : getxxyy@OBJ OBJs@(idObj), xx,yy
+				if ((listFixedLeadsWiresDrg(cnt)&1)==0) {expandBB xx(0),yy(0)} : if ((listFixedLeadsWiresDrg(cnt)&2)==0) {expandBB xx(1),yy(1)}
+			loop
+			if (xTLBB>xBRBB) {xTLBB=int(mxb_) : xBRBB=xTLBB+1} : if (yTLBB>yBRBB) {yTLBB=int(myb_) : yBRBB=yTLBB+1}	//コメントタグのみをドラッグするとこうなる
+			sxBB=xBRBB-xTLBB+1 : syBB=yBRBB-yTLBB+1
+			rxTLBB2m=double(xTLBB)-mxb_ : ryTLBB2m=double(yTLBB)-myb_
+		/* 位置情報登録 */
+			repeat numPartsDrg
+				idObj=listIdObjsPartsDrg(cnt) : getxxyy@OBJ OBJs@(idObj), xx,yy
+				listXFLPartsDrg(cnt)=xx-xTLBB : listYFLPartsDrg(cnt)=yy-yTLBB
+			loop
+			repeat numWiresDrg
+				idObj=listIdObjsWiresDrg(cnt) : getxxyy@OBJ OBJs@(idObj), xx,yy
+				listXFLWiresDrg(cnt)=xx(0)-xTLBB : listYFLWiresDrg(cnt)=yy(0)-yTLBB : listXSLWiresDrg(cnt)=xx(1)-xTLBB : listYSLWiresDrg(cnt)=yy(1)-yTLBB
+			loop
+			repeat numCmtTagsDrg
+				idObj=listIDObjsCmtTagsDrg(cnt) : getxxyy@OBJ OBJs@(idObj), xx,yy : xx_dbl=getxx_dbl@OBJ(OBJs@(idObj)) : yy_dbl=getyy_dbl@OBJ(OBJs@(idObj))
+				listRx2BBCmtTagsDrg(cnt)=xx_dbl-xTLBB : listRy2BBCmtTagsDrg(cnt)=yy_dbl-yTLBB
+				listRx2CsrCmtTagsDrg(cnt)=xx_dbl-mxb_ : listRy2CsrCmtTagsDrg(cnt)=yy_dbl-myb_
+			loop
+		stat_edit@|=ES_DRAG : arrangeMenuBarStat
+		return
+	
+	#deffunc local drag	double mxb_,double myb_	//ドラッグ。できるだけマウスカーソルの要求に沿うようにドラッグする。
+		assertEx (stat_edit@&ES_DRAG)
+		xTLBB_prev=xTLBB : yTLBB_prev=yTLBB
+		xTLBB=limit(round(mxb_+rxTLBB2m),0,numHole_xCurProj-sxBB) : yTLBB=limit(round(myb_+ryTLBB2m),0,numHole_yCurProj-syBB)
+		if ((xTLBB!=xTLBB_prev)||(yTLBB!=yTLBB_prev)) {
+			repeat numPartsDrg	//部品の移動
+				idObj=listIdObjsPartsDrg(cnt)
+				pulloutPorW idObj : xx=xTLBB+listXFLPartsDrg(cnt) : yy=yTLBB+listYFLPartsDrg(cnt) : setxxyy@OBJ OBJs@(idObj), xx,yy : insertPorW idObj
+			loop
+			repeat numWiresDrg	//配線の移動
+				idObj=listIdObjsWiresDrg(cnt) : getxxyy@OBJ OBJs@(idObj), xx,yy
+				pulloutPorW idObj
+				if ((listFixedLeadsWiresDrg(cnt)&1)==0) {xx(0)=xTLBB+listXFLWiresDrg(cnt) : yy(0)=yTLBB+listYFLWiresDrg(cnt)}
+				if ((listFixedLeadsWiresDrg(cnt)&2)==0) {xx(1)=xTLBB+listXSLWiresDrg(cnt) : yy(1)=yTLBB+listYSLWiresDrg(cnt)}
+				setxxyy@OBJ OBJs@(idObj), xx,yy
+				insertPorW idObj
+			loop
+		}
+		//コメントタグの移動
+		if (numPartsDrg == 0)&&(numWiresDrg == 0)&&(numCmtTagsDrg == 1) {	//コメントタグ1つのみ移動している場合
+			//特別に移動可能範囲を広くする
+			idObj=listIDObjsCmtTagsDrg(0)
+			xx_dbl = mxb_+listRx2CsrCmtTagsDrg(0)
+			yy_dbl = myb_+listRy2CsrCmtTagsDrg(0)
+			xx_dbl=limitf(xx_dbl, xTLBoardSurface,xBRBoardSurface)
+			yy_dbl=limitf(yy_dbl, yTLBoardSurface,yBRBoardSurface)
+			setxx_dbl@OBJ OBJs@(idObj), xx_dbl : setyy_dbl@OBJ OBJs@(idObj), yy_dbl
+		} else {
+			repeat numCmtTagsDrg
+				idObj=listIDObjsCmtTagsDrg(cnt)
+				xx_dbl=limitf(mxb_+listRx2CsrCmtTagsDrg(cnt), double(xTLBB)+listRx2BBCmtTagsDrg(cnt)-0.5, double(xTLBB)+listRx2BBCmtTagsDrg(cnt)+0.5)
+				yy_dbl=limitf(myb_+listRy2CsrCmtTagsDrg(cnt), double(yTLBB)+listRy2BBCmtTagsDrg(cnt)-0.5, double(yTLBB)+listRy2BBCmtTagsDrg(cnt)+0.5)
+				xx_dbl=limitf(xx_dbl, xTLBoardSurface,xBRBoardSurface)
+				yy_dbl=limitf(yy_dbl, yTLBoardSurface,yBRBoardSurface)
+				setxx_dbl@OBJ OBJs@(idObj), xx_dbl : setyy_dbl@OBJ OBJs@(idObj), yy_dbl
+			loop
+		}
+		drawGPCandRegion : refreshFrontAndBackWnd
+		return
+	
+	#deffunc local rotate double mxb_,double myb_	//+90°回転
+		//stat=(0,1)=(成功,基板が狭すぎて無理)
+		assertEx (stat_edit@&ES_DRAG)
+		if ((numHole_xCurProj<syBB)||(numHole_yCurProj<sxBB)) {return 1}
+		tmp=sxBB : sxBB=syBB : syBB=tmp
+		xTLBB=limit(xTLBB,0,numHole_xCurProj-sxBB) : yTLBB=limit(yTLBB,0,numHole_yCurProj-syBB)
+		repeat numPartsDrg	//部品の移動
+			idObj=listIdObjsPartsDrg(cnt) : deg=getDeg@OBJ(OBJs@(idObj))
+			pulloutPorW idObj
+			tmp=listXFLPartsDrg(cnt) : listXFLPartsDrg(cnt)=sxBB-listYFLPartsDrg(cnt)-1 : listYFLPartsDrg(cnt)=tmp
+			xx=xTLBB+listXFLPartsDrg(cnt) : yy=yTLBB+listYFLPartsDrg(cnt) : setxxyy@OBJ OBJs@(idObj), xx,yy
+			deg+=90 : deg\=360 : setDeg@OBJ OBJs@(idObj), deg
+			insertPorW idObj
+		loop
+		repeat numWiresDrg	//配線の移動
+			idObj=listIdObjsWiresDrg(cnt) : getxxyy@OBJ OBJs@(idObj), xx,yy
+			pulloutPorW idObj
+			if ((listFixedLeadsWiresDrg(cnt)&1)==0) {
+				tmp=listXFLWiresDrg(cnt) : listXFLWiresDrg(cnt)=sxBB-listYFLWiresDrg(cnt)-1 : listYFLWiresDrg(cnt)=tmp
+				xx(0)=xTLBB+listXFLWiresDrg(cnt) : yy(0)=yTLBB+listYFLWiresDrg(cnt)
+			}
+			if ((listFixedLeadsWiresDrg(cnt)&2)==0) {
+				tmp=listXSLWiresDrg(cnt) : listXSLWiresDrg(cnt)=sxBB-listYSLWiresDrg(cnt)-1 : listYSLWiresDrg(cnt)=tmp
+				xx(1)=xTLBB+listXSLWiresDrg(cnt) : yy(1)=yTLBB+listYSLWiresDrg(cnt)
+			}
+			setxxyy@OBJ OBJs@(idObj), xx,yy
+			insertPorW idObj
+		loop
+		repeat numCmtTagsDrg	//コメントタグの移動
+			idObj=listIDObjsCmtTagsDrg(cnt)
+			#if 0
+				tmp_x=mxb_+listRx2CsrCmtTagsDrg(cnt)-xTLBB : tmp_y=myb_+listRy2CsrCmtTagsDrg(cnt)-yTLBB	//回転前のコメントタグの左上理想位置のバウンディングボックス左上に対する相対座標。
+				tmp=tmp_x : tmp_x=double(sxBB)-tmp_y-1.0 : tmp_y=tmp	//回転後の〃。
+				listRx2CsrCmtTagsDrg(cnt)=double(xTLBB)+tmp_x-mxb_ : listRy2CsrCmtTagsDrg(cnt)=double(yTLBB)+tmp_y-myb_
+				xx_dbl=limitf(mxb_+listRx2CsrCmtTagsDrg(cnt), min_posxyCmtTag, max_posxCmtTag)
+				yy_dbl=limitf(myb_+listRy2CsrCmtTagsDrg(cnt), min_posxyCmtTag, max_posyCmtTag)
+			#else
+				tmp=listRx2BBCmtTagsDrg(cnt) : listRx2BBCmtTagsDrg(cnt)=double(sxBB)-listRy2BBCmtTagsDrg(cnt)-1.0 : listRy2BBCmtTagsDrg(cnt)=tmp
+				xx_dbl=double(xTLBB)+listRx2BBCmtTagsDrg(cnt) : yy_dbl=double(yTLBB)+listRy2BBCmtTagsDrg(cnt)
+				listRx2CsrCmtTagsDrg(cnt)=xx_dbl-mxb_ : listRy2CsrCmtTagsDrg(cnt)=yy_dbl-myb_
+			#endif
+			setxx_dbl@OBJ OBJs@(idObj), xx_dbl : setyy_dbl@OBJ OBJs@(idObj), yy_dbl
+		loop
+		drawGPCandRegion : refreshFrontAndBackWnd
+		return 0
+	
+	#deffunc local bringToFront	//ドラッグ中の部品群をドラッグされていない部品群より手前に持ってくる
+		assertEx (stat_edit@&ES_DRAG)
+		repeat numPartsDrg : bringPartToFront@proj_zOrder listIdObjsPartsDrg(cnt) : loop
+		drawGPCandRegion : refreshFrontAndBackWnd
+		return
+	
+	#deffunc local endDrag	//ドラッグ終了
+		assertEx (stat_edit@&ES_DRAG)
+		delete0LenWires : autoMakeJunctions : delDupWires : delNeedlessJuncs dummy,0
+		stat_edit@&=BITINV(ES_DRAG) : pattern_UI_MouseEditOpe_done
+		return
+	
+	#deffunc local cancelDrag	//ドラッグキャンセル
+		assertEx (stat_edit@&ES_DRAG)
+		stat_edit@&=BITINV(ES_DRAG) : pattern_UI_MouseEditOpe_cancel
+		return
+#global

@@ -1,0 +1,703 @@
+/*
+	起動処理
+*/
+//#define DEBUGMODE	//デバッグ
+//onerror goto *int_onerror
+dir_bin=dir_cur	//実行ファイルのあるディレクトリ
+
+/*--------------------▼ 一時変数の初期化 ▼--------------------*/
+*initTempVars
+	dummy=0
+	buf=""
+	hoge=0 : fuga=0 : piyo=0
+/*--------------------------------------------------------------*/
+
+/*--------------------▼ 設定ロード ▼--------------------*/
+*loadConfig
+	pathConfigFile=dir_bin+"\\config\\config.json"
+	cfgInt=0 : loadConfigFile cfgInt, pathConfigFile
+	if (stat==1) {tmp="ありません"}
+	if (stat==2) {tmp="壊れています"}
+	if (stat) {dialog "設定ファイル\n"+pathConfigFile+"\nが"+tmp+"。\nデフォルト設定をロードします",1,appName : loadDefaultConfig cfgInt}
+/*--------------------------------------------------------*/
+
+/*--------------------▼ アプリケーションウィンドウ作成 ▼--------------------*/
+*mkAppWnd
+	/* ウィンドウID */
+		#enum global WID_MAIN=0	//メイン
+		#enum global WID_SPLASH	//スプラッシュウィンドウ
+		#enum global WID_LSIDE		//左サイド
+		#enum global WID_BOARD		//基板
+		#enum global WID_FRONT		//表面
+		#enum global WID_BACK		//裏面
+		#enum global WID_NEWPROJ	//新規作成
+		#enum global WID_SETPROJPROP	//プロパティ設定
+		#enum global WID_CHNUMHOLES	//穴数変更
+		#enum global WID_SLIDEOBJS	//オブジェクトスライド
+		#enum global WID_AUTOANN	//自動アノテーション
+		#enum global WID_ADDPART	//部品の追加
+			#enum global WID_SCRL_PREVIEW_ADDPART	//部品の追加用ウィンドウにおけるプレビュー用ウィンドウを収めるスクロールエリア
+			#enum global WID_PREVIEW_ADDPART	//部品の追加用ウィンドウにおけるプレビュー
+		#enum global WID_ADDCMTTAG	//コメントタグ追加用ウィンドウ
+		#enum global WID_COMMENT	//コメント等追加
+		#enum global WID_CHWIRECOLOR	//配線の色変更
+		#enum global WID_MERGE_BOARD	//別の基板を統合
+	/* GUI部品用バッファ確保 */
+		/* button */
+			#enum global IDBUTTON_addCmtTag_browseBgColor=0
+			#enum global IDBUTTON_addCmtTag_browsechrColor
+			#enum global IDBUTTON_dummy
+			dim hwndButton, IDBUTTON_dummy
+		/* chkbox */
+			#enum global IDCHKBOX_readOnly_projProp=0
+			#enum global IDCHKBOX_dummy
+			dim statChkBox, IDCHKBOX_dummy : dim hwndChkBox, IDCHKBOX_dummy
+		/* input */
+			#enum global IDINPUT_x_numHole=0
+			#enum global IDINPUT_y_numHole
+			#enum global IDINPUT_author_projProp
+			#enum global IDINPUT_title_projProp
+			#enum global IDINPUT_subtitle_projProp
+			#enum global IDINPUT_x_slideObjs
+			#enum global IDINPUT_y_slideObjs
+			#enum global IDINPUT_addCmtTag_bgColor
+			#enum global IDINPUT_addCmtTag_chrColor
+			#enum global IDINPUT_comment_val1
+			#enum global IDINPUT_comment_val2
+			#enum global IDINPUT_comment_val3
+			#enum global IDINPUT_chWireColor_R
+			#enum global IDINPUT_chWireColor_G
+			#enum global IDINPUT_chWireColor_B
+			#enum global IDINPUT_path_mergeBoard
+			#enum global IDINPUT_x_mergeBoard
+			#enum global IDINPUT_y_mergeBoard
+			#enum global IDINPUT_dummy
+			sdim bufInput,8,IDINPUT_dummy : dim hwndInput,IDINPUT_dummy
+		/* mesbox */
+			#enum global IDMESBOX_explanation_projProp=0
+			#enum global IDMESBOX_addPart_PMFcaption
+			#enum global IDMESBOX_addPart_PMexpl
+			#enum global IDMESBOX_addCmtTag
+			#enum global IDMESBOX_comment
+			#enum global IDMESBOX_dummy
+			sdim bufMesbox,8,IDMESBOX_dummy : dim hwndMesbox,IDMESBOX_dummy
+		/* listbox */
+			#enum global IDLISTBOX_addPart=0
+			#enum global IDLISTBOX_dummy
+			dim statListbox,IDLISTBOX_dummy : sdim bufListbox,64,IDLISTBOX_dummy : dim hwndListbox,IDLISTBOX_dummy
+		/* combox */
+			#enum global IDCOMBOX_autoAnn=0
+			#enum global IDCOMBOX_addPart
+			#enum global IDCOMBOX_addCmtTag
+			#enum global IDCOMBOX_dummy
+			dim statCombox,IDCOMBOX_dummy : sdim bufCombox,16,IDCOMBOX_dummy : dim hwndCombox,IDCOMBOX_dummy
+	/* スプラッシュウィンドウ */
+		#define SX_SPLASH	300
+		#define SY_SPLASH	160
+		#define SY_PB_SPLASH	15
+		bgscr WID_SPLASH, SX_SPLASH,SY_SPLASH, 0 : hwnd_splash=hwnd
+		SetWindowPos hwnd_splash, DONTCARE_INT, (ginfo_dispx-SX_SPLASH)/2,(ginfo_dispy-SY_SPLASH)/2, DONTCARE_INT,DONTCARE_INT, SWP_NOSIZE|SWP_NOZORDER
+		picload dir_bin+"\\res\\imgs\\splash\\splash.png",1
+		/* ステータスバー */
+			winobj "msctls_statusbar32", "", 0, WS_CHILD|WS_VISIBLE|CCS_BOTTOM, DONTCARE_INT,DONTCARE_INT : hSB_splash=objinfo(stat,2)
+			dim rect,4 : GetWindowRect hSB_splash,rect : sy_SB_splash=rect(3)-rect(1)
+		/* プログレスバー */
+			pos 0,SY_SPLASH-1-sy_SB_splash-SY_PB_SPLASH : winobj "msctls_progress32", "", 0, WS_CHILD|WS_VISIBLE, SX_SPLASH,SY_PB_SPLASH : hPB_splash=objinfo(stat,2)
+		gsel WID_SPLASH,2
+	/* メインウィンドウ */
+		#define global MIN_SXC_MAIN	640
+		#define global MIN_SYC_MAIN	480
+		SX_MAIN=ginfo_dispx : SY_MAIN=ginfo_dispy
+		screen WID_MAIN, SX_MAIN,SY_MAIN, 2, 0,0, 800,600
+		hwnd_main = hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE)|WS_MAXIMIZEBOX|WS_EX_APPWINDOW : SetWindowLong hwnd, GWL_STYLE, style	//サイズ可変,最大化許可
+		title appName
+		/* メニューバー */
+			#enum global IDM_separator = 0
+			//ファイル
+			#enum global IDM_new
+			#enum global IDM_open
+			#enum global IDM_save
+			#enum global IDM_saveas
+			#enum global IDM_close
+			#enum global IDM_prop
+			#enum global IDM_quit
+			//ウィンドウ
+			#enum global IDM_viewTopLeft
+			#enum global IDM_alignH
+			#enum global IDM_alignV
+				#enum global IDM_mag_1
+				#enum global IDM_mag_2
+				#enum global IDM_mag_4
+			//基板
+			#enum global IDM_chgNumHoles
+				//構成を回転
+				#enum global IDM_rotateCircuitryP90
+				#enum global IDM_rotateCircuitryM90
+				//表面
+				#enum global IDM_front_showBackWires
+				#enum global IDM_front_exportBMP
+				//裏面
+				#enum global IDM_back_showFrontWires
+				#enum global IDM_back_mirror
+				#enum global IDM_back_exportBMP
+			#enum global IDM_mergeBoard
+			//表示
+			#enum global IDM_showCmtTags
+			//オブジェクト
+			#enum global IDM_addPart
+			#enum global IDM_addCmtTag
+			#enum global IDM_slideObjs
+			#enum global IDM_autoAnn
+			//操作
+			#enum global IDM_undo
+			#enum global IDM_redo
+			//ヘルプ
+			#enum global IDM_openManual
+			#enum global IDM_ver
+			
+			hMenu_file = CreatePopupMenu()
+				AppendMenu hMenu_file, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_new, "新規作成 (Ctrl+N)"
+				AppendMenu hMenu_file, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_open, "開く (Ctrl+O)"
+				AppendMenu hMenu_file, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_save, "上書き保存 (Ctrl+S)"
+				AppendMenu hMenu_file, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_saveas, "名前を付けて保存 (Ctrl+A)"
+				AppendMenu hMenu_file, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_close, "閉じる"
+				AppendMenu hMenu_file, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_prop, "プロパティ"
+				AppendMenu hMenu_file, MF_SEPARATOR, IDM_separator, ""
+				AppendMenu hMenu_file, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_quit, "終了"
+			hMenu_window = CreatePopupMenu()
+				AppendMenu hMenu_window, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_viewTopLeft, "基板左上へ移動"
+				AppendMenu hMenu_window, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_alignH, "整列(横) (Ctrl+H)"
+				AppendMenu hMenu_window, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_alignV, "整列(縦) (Ctrl+V)"
+				/* 表示倍率サブメニュー */
+					hSubMenu_mag = CreatePopupMenu()
+					AppendMenu hSubMenu_mag, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_mag_1, "x1"
+					AppendMenu hSubMenu_mag, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_mag_2, "x2"
+					AppendMenu hSubMenu_mag, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_mag_4, "x4"
+					CheckMenuRadioItem hSubMenu_mag, IDM_mag_1,IDM_mag_4, IDM_mag_1, MF_BYCOMMAND
+				AppendMenu hMenu_window, MF_ENABLED|MF_STRING|MF_UNCHECKED|MF_POPUP, hSubMenu_mag, "表示倍率(wheel)"
+			hMenu_board = CreatePopupMenu()
+				AppendMenu hMenu_board, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_chgNumHoles, "穴数変更"
+				/* 構成回転サブメニュー */
+					hSubMenu_rotateCircuitry = CreatePopupMenu()
+					AppendMenu hSubMenu_rotateCircuitry, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_rotateCircuitryP90, "+90°"
+					AppendMenu hSubMenu_rotateCircuitry, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_rotateCircuitryM90, "-90°"
+				AppendMenu hMenu_board, MF_ENABLED|MF_STRING|MF_UNCHECKED|MF_POPUP, hSubMenu_rotateCircuitry, "構成を回転"
+				/* 表面サブメニュー */
+					hSubMenu_front = CreatePopupMenu()
+					AppendMenu hSubMenu_front, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_front_showBackWires, "裏配線を表示"
+					AppendMenu hSubMenu_front, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_front_exportBMP, "BMP出力"
+				AppendMenu hMenu_board, MF_ENABLED|MF_STRING|MF_UNCHECKED|MF_POPUP, hSubMenu_front, "表面"
+				/* 裏面サブメニュー */
+					hSubMenu_back = CreatePopupMenu()
+					AppendMenu hSubMenu_back, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_back_showFrontWires, "表配線を表示"
+					AppendMenu hSubMenu_back, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_back_mirror, "鏡像(Ctrl+M)"
+					AppendMenu hSubMenu_back, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_back_exportBMP, "BMP出力"
+				AppendMenu hMenu_board, MF_ENABLED|MF_STRING|MF_UNCHECKED|MF_POPUP, hSubMenu_back, "裏面"
+				AppendMenu hMenu_board, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_mergeBoard, "別の基板を統合"
+			hMenu_display = CreatePopupMenu()
+				AppendMenu hMenu_display, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_showCmtTags, "コメントタグを表示"
+			hMenu_obj = CreatePopupMenu()
+				AppendMenu hMenu_obj, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_addPart, "部品を追加	(基板上で A)"
+				AppendMenu hMenu_obj, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_addCmtTag, "コメントタグを追加	(基板上で T)"
+				AppendMenu hMenu_obj, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_slideObjs, "全体をスライド"
+				AppendMenu hMenu_obj, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_autoAnn, "自動アノテーション"
+			hMenu_ope = CreatePopupMenu()
+				AppendMenu hMenu_ope, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_undo, "元に戻す(Ctrl+Z)"
+				AppendMenu hMenu_ope, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_redo, "やり直す(Ctrl+Y)"
+			hMenu_help = CreatePopupMenu()
+				AppendMenu hMenu_help, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_openManual, "マニュアルを開く"
+				AppendMenu hMenu_help, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDM_ver, "バージョン情報"
+			hMenu_root = CreateMenu()
+				AppendMenu hMenu_root, MF_POPUP, hMenu_file, "ファイル"
+				AppendMenu hMenu_root, MF_POPUP, hMenu_window, "ウィンドウ"
+				AppendMenu hMenu_root, MF_POPUP, hMenu_board, "基板"
+				AppendMenu hMenu_root, MF_POPUP, hMenu_display, "表示"
+				AppendMenu hMenu_root, MF_POPUP, hMenu_obj, "オブジェクト"
+				AppendMenu hMenu_root, MF_POPUP, hMenu_ope, "操作"
+				AppendMenu hMenu_root, MF_POPUP, hMenu_help, "ヘルプ"
+			SetMenu hwnd,hMenu_root
+			DrawMenuBar hwnd
+		/* ステータスバー */
+			winobj "msctls_statusbar32", "", NULL, WS_CHILD|WS_VISIBLE|CCS_BOTTOM : hStatBar=objinfo(stat,2)
+			dim rect,4 : GetWindowRect hStatBar,rect : sy_statBar=rect(3)-rect(1)
+			sep=70,sep(0)+100,sep(1)+60,-1 : sendmsg hStatBar,SB_SETPARTS, 4,varptr(sep)
+			#enum global IDSBPART_MAG=0
+			#enum global IDSBPART_UNSAVEDMOD
+			#enum global IDSBPART_READONLY
+		/* サイズ調整 */
+			crect=0,0,799,599 : AdjustWindowRect crect, style, TRUE : dup wrect, crect
+			setWindowPos hwnd, DONTCARE_INT, 0,0, wrect(2),wrect(3), SWP_NOZORDER
+			dup wrect, dummy
+			sxc_main = ginfo_winx : syc_main = ginfo_winy
+		oncmd gosub *int_main_WM_SIZE@window_int, WM_SIZE
+		oncmd gosub *int_main_WM_GETMINMAXINFO@window_int, WM_GETMINMAXINFO
+		oncmd gosub *int_main_WM_COMMAND@window_int, WM_COMMAND
+	/* 左サイドウィンドウ */
+		#define global SX_LSIDE	300
+		#define global MIN_SXC_LSIDE	1
+		sxc_lside=MIN_SXC_LSIDE
+		bgscr WID_LSIDE, SX_LSIDE,ginfo_dispy, 2, 0,0, sxc_lside,syc_main-sy_statBar : syc_lside = ginfo_winy
+		hwnd_lside = hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP	//WS_CHILDを付加,WS_POPUPを除去(これで親ウィンドウがフォーカスを失うことはなくなる)
+		#const BGC_LSIDE	RGB(50,50,50)
+		#const charColor_LSIDE	BITINV(BGC_LSIDE)
+		rgbcolor BGC_LSIDE : boxf
+		SetParent hwnd,hwnd_main
+		gsel WID_LSIDE,1
+		oncmd gosub *int_wnd_lside@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* 基板ウィンドウ */
+		bgscr WID_BOARD, ginfo_dispx-MIN_SXC_LSIDE, ginfo_dispy, 2, 0,0, sxc_main-sxc_lside,syc_main-sy_statBar : sxc_board = ginfo_winx : syc_board = ginfo_winy
+		hwnd_board = hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_main
+		SetWindowPos hwnd, DONTCARE_INT, sxc_lside,0, DONTCARE_INT,DONTCARE_INT, SWP_NOSIZE|SWP_NOZORDER
+		#const BGC_BOARD	RGB(50,50,50)
+		rgbcolor BGC_BOARD : boxf
+		DragAcceptFiles hwnd, TRUE
+		oncmd gosub *int_wndBoard_WM_DROPFILES@window_int, WM_DROPFILES
+		gsel WID_BOARD,1
+	/* 基盤表面,裏面ウィンドウ */
+		/* 表面 */
+			screen WID_FRONT, ginfo_dispx,ginfo_dispy, 2, 0,0, 400,200 : sxc_front = ginfo_winx : syc_front = ginfo_winy
+			hwnd_front = hwnd
+			style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD|WS_MAXIMIZEBOX	//子ウィンドウ化,最大化ボタン有効化
+			hSystemMenu = GetSystemMenu(hwnd,FALSE) : DeleteMenu hSystemMenu, SC_CLOSE, MF_BYCOMMAND	//閉じるボタン無効化
+			SetParent hwnd,hwnd_board
+			title "表"
+			gsel WID_FRONT,1
+			/* ステータスバー */
+				winobj "msctls_statusbar32", "", NULL, WS_CHILD|WS_VISIBLE|CCS_BOTTOM : hStatBar_front=objinfo(stat,2)
+				dim rect,4 : GetWindowRect hStatBar_front,rect : sy_statBar_front=rect(3)-rect(1)
+				sep=95,195,350,-1 : sendmsg hStatBar_front,SB_SETPARTS, 4,varptr(sep)
+				#enum global IDSBP_FRONT_BPOS=0
+				#enum global IDSBP_FRONT_ANN
+				#enum global IDSBP_FRONT_PMN	//PartModelName
+				#enum global IDSBP_FRONT_OTHERS
+			oncmd gosub *int_front_WM_MOUSEMOVE@window_int, WM_MOUSEMOVE
+			oncmd gosub *int_front_WM_MOUSEWHEEL@window_int, WM_MOUSEWHEEL
+			oncmd gosub *int_front_WM_LBUTTONDOWN@window_int, WM_LBUTTONDOWN
+			oncmd gosub *int_front_WM_LBUTTONUP@window_int, WM_LBUTTONUP
+			oncmd gosub *int_front_WM_RBUTTONDOWN@window_int, WM_RBUTTONDOWN
+			oncmd gosub *int_front_WM_RBUTTONUP@window_int, WM_RBUTTONUP
+			oncmd gosub *int_front_WM_NCLBUTTONDOWN@window_int, WM_NCLBUTTONDOWN
+			oncmd gosub *int_front_WM_SIZE@window_int, WM_SIZE
+		/* 裏面 */
+			screen WID_BACK, ginfo_dispx,ginfo_dispy, 2, 0,200, 400,200 : sxc_back = ginfo_winx : syc_back = ginfo_winy
+			hwnd_back = hwnd
+			style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD|WS_MAXIMIZEBOX	//子ウィンドウ化,最大化ボタン有効化
+			hSystemMenu = GetSystemMenu(hwnd,FALSE) : DeleteMenu hSystemMenu, SC_CLOSE, MF_BYCOMMAND	//閉じるボタン無効化
+			SetParent hwnd,hwnd_board
+			title "裏"
+			gsel WID_BACK,1
+			/* ステータスバー */
+				winobj "msctls_statusbar32", "", NULL, WS_CHILD|WS_VISIBLE|CCS_BOTTOM : hStatBar_back=objinfo(stat,2)
+				dim rect,4 : GetWindowRect hStatBar_back,rect : sy_statBar_back=rect(3)-rect(1)
+				sep=95,195,350,-1 : sendmsg hStatBar_back,SB_SETPARTS, 4,varptr(sep)
+				#enum global IDSBP_BACK_BPOS=0
+				#enum global IDSBP_BACK_ANN
+				#enum global IDSBP_BACK_PMN
+				#enum global IDSBP_BACK_OTHERS
+			oncmd gosub *int_back_WM_MOUSEMOVE@window_int, WM_MOUSEMOVE
+			oncmd gosub *int_back_WM_MOUSEWHEEL@window_int, WM_MOUSEWHEEL
+			oncmd gosub *int_back_WM_LBUTTONDOWN@window_int, WM_LBUTTONDOWN
+			oncmd gosub *int_back_WM_LBUTTONUP@window_int, WM_LBUTTONUP
+			oncmd gosub *int_back_WM_RBUTTONDOWN@window_int, WM_RBUTTONDOWN
+			oncmd gosub *int_back_WM_RBUTTONUP@window_int, WM_RBUTTONUP
+			oncmd gosub *int_back_WM_NCLBUTTONDOWN@window_int, WM_NCLBUTTONDOWN
+			oncmd gosub *int_back_WM_SIZE@window_int, WM_SIZE
+		/* 右クリックメニュー */
+			/* 基板面用 */
+				#enum global IDRCM_BOARD_SURFACE_startBareWire=1
+				#enum global IDRCM_BOARD_SURFACE_startShieldedWire
+					//範囲選択
+					#enum global IDRCM_BOARD_SURFACE_selRect_front
+					#enum global IDRCM_BOARD_SURFACE_selRect_back
+					#enum global IDRCM_BOARD_SURFACE_selRect_both
+				#enum global IDRCM_BOARD_SURFACE_viewTopLeft
+				#enum global IDRCM_BOARD_SURFACE_addCmtTag
+				hBoardSurfaceRCMenu = CreatePopupMenu()
+				AppendMenu hBoardSurfaceRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_BOARD_SURFACE_startBareWire, "裸線開始	(基板上で W)"
+				AppendMenu hBoardSurfaceRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_BOARD_SURFACE_startShieldedWire, "被覆線(ジャンパ)開始	(基板上で J)"
+				/* 範囲選択サブメニュー */
+					hBoardSurfaceRCSubMenu_selRect = CreatePopupMenu()
+					AppendMenu hBoardSurfaceRCSubMenu_selRect, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_BOARD_SURFACE_selRect_front, "表面	(表面で Shift+S+左ボタン)"
+					AppendMenu hBoardSurfaceRCSubMenu_selRect, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_BOARD_SURFACE_selRect_back, "裏面	(裏面で Shift+S+左ボタン)"
+					AppendMenu hBoardSurfaceRCSubMenu_selRect, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_BOARD_SURFACE_selRect_both, "両面	(基板上で Shift+左ボタン)"
+				AppendMenu hBoardSurfaceRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED|MF_POPUP, hBoardSurfaceRCSubMenu_selRect, "範囲選択"
+				AppendMenu hBoardSurfaceRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_BOARD_SURFACE_viewTopLeft, "基板左上へ移動"
+				AppendMenu hBoardSurfaceRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_BOARD_SURFACE_addCmtTag, "コメントタグを追加	(基板上で T)"
+			/* 部品用 */
+				#enum global IDRCM_PART_bringToFront=1
+				#enum global IDRCM_PART_drag
+				#enum global IDRCM_PART_move
+				#enum global IDRCM_PART_copy
+				#enum global IDRCM_PART_addComment
+				#enum global IDRCM_PART_delete
+				hPartRCMenu = CreatePopupMenu()
+				AppendMenu hPartRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_PART_bringToFront, "最前面に移動	(部品上で F)"
+				AppendMenu hPartRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_PART_drag, "ドラッグ	(部品上で G)"
+				AppendMenu hPartRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_PART_move, "移動	(部品上で M)"
+				AppendMenu hPartRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_PART_copy, "コピー	(部品上で C)"
+				AppendMenu hPartRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_PART_addComment, "コメント等追加	(部品上で　V)"
+				AppendMenu hPartRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_PART_delete, "削除	(部品上で D)"
+			/* 配線用 */
+				#enum global IDRCM_WIRE_drag=1
+				#enum global IDRCM_WIRE_move
+				#enum global IDRCM_WIRE_chColor
+				#enum global IDRCM_WIRE_addComment
+				#enum global IDRCM_WIRE_delete
+				#enum global IDRCM_WIRE_delSinglePath
+				hWireRCMenu = CreatePopupMenu()
+				AppendMenu hWireRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_WIRE_drag, "ドラッグ	(配線上で G)"
+				AppendMenu hWireRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_WIRE_move, "移動	(配線上で M)"
+				AppendMenu hWireRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_WIRE_chColor, "色の変更"
+				AppendMenu hWireRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_WIRE_addComment, "コメント等追加	(配線上で V)"
+				AppendMenu hWireRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_WIRE_delete, "削除	(配線上で D)"
+				AppendMenu hWireRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_WIRE_delSinglePath, "単一路を削除	(配線上で Shift+D)"
+			/* コメントタグ用 */
+				#enum global IDRCM_CMTTAG_move=1
+				#enum global IDRCM_CMTTAG_del
+				#enum global IDRCM_CMTTAG_addComment
+				hCmtTagRCMenu = CreatePopupMenu()
+				AppendMenu hCmtTagRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_CMTTAG_move, "移動	(タグ上で M)"
+				AppendMenu hCmtTagRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_CMTTAG_del, "削除	(タグ上で D)"
+				AppendMenu hCmtTagRCMenu, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDRCM_CMTTAG_addComment, "コメント編集	(タグ上で V)"
+		/* 選択範囲メニュー */
+			#enum global IDMRS_DRAG=1	//MRS="MenuRectSelected"
+			#enum global IDMRS_MOVE
+			#enum global IDMRS_COPY
+			#enum global IDMRS_DEL
+			hMenuRS=CreatePopupMenu()
+			AppendMenu hMenuRS, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDMRS_DRAG, "ドラッグ"
+			AppendMenu hMenuRS, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDMRS_MOVE, "移動"
+			AppendMenu hMenuRS, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDMRS_COPY, "コピー"
+			AppendMenu hMenuRS, MF_ENABLED|MF_STRING|MF_UNCHECKED, IDMRS_DEL, "削除"
+	/* 新規作成 */
+		#define global SX_NEWPROJ	200
+		#define global SY_NEWPROJ	80
+		bgscr WID_NEWPROJ, SX_NEWPROJ,SY_NEWPROJ, 2 : hwnd_newProj=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : objmode 1,1 : rgbcolor charColor_LSIDE
+		pos 5,5 : mes "(新規作成)"
+		pos 5,20 : mes "[穴の数]"
+		pos 15,35 : mes "横 : " : pos 15+ginfo_mesx,33 : input bufInput(IDINPUT_x_numHole),25,16,3
+		pos 70,35 : mes "縦 : " : pos 70+ginfo_mesx,33 : input bufInput(IDINPUT_y_numHole),25,16,3
+		objsize 55,18
+		pos SX_NEWPROJ-55-5,SY_NEWPROJ-40-5 : button gosub "実行",*int_button_newproj_do@proj_CreateAndClear
+		pos SX_NEWPROJ-55-5,SY_NEWPROJ-20-5 : button gosub "中止",*int_button_newproj_cancel@proj_CreateAndClear
+		oncmd gosub *int_wndNew@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* プロパティ設定 */
+		#define global SX_SETPROJPROP	200
+		#define global SY_SETPROJPROP	250
+		bgscr WID_SETPROJPROP, SX_SETPROJPROP,SY_SETPROJPROP, 2 : hwnd_setProp=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : objmode 1,1 : rgbcolor charColor_LSIDE
+		pos 5,5 : mes "(プロパティ)"
+		pos 10,20 : mes "作者 :" : pos 45,18 : input bufInput(IDINPUT_author_projProp), SX_SETPROJPROP-45-5,16,0 : hwndInput(IDINPUT_author_projProp)=objinfo(stat,2)
+		pos 10,35 : mes "タイトル :" : pos 60,33 : input bufInput(IDINPUT_title_projProp), SX_SETPROJPROP-60-5,16,0 : hwndInput(IDINPUT_title_projProp)=objinfo(stat,2)
+		pos 10,50 : mes "サブタイトル :" : pos 70,48 : input bufInput(IDINPUT_subtitle_projProp), SX_SETPROJPROP-70-5,16,0 : hwndInput(IDINPUT_subtitle_projProp)=objinfo(stat,2)
+		pos 10,65 : mes "[説明]" : pos 20,80 : mesbox bufMesbox(IDMESBOX_explanation_projProp), SX_SETPROJPROP-20-5,100, 1,0 : hwndMesbox(IDMESBOX_explanation_projProp)=objinfo(stat,2)
+		pos 10,190 : objsize 12,12 : chkbox "", statChkBox(IDCHKBOX_readOnly_projProp) : pos 25,190 : mes "読み取り専用" : hwndChkBox(IDCHKBOX_readOnly_projProp)=objinfo(stat,2)
+		objsize 55,18
+		pos SX_SETPROJPROP-55-5,SY_SETPROJPROP-20-5 : button gosub "取消",*int_button_cancel@proj_setProjProp
+		pos SX_SETPROJPROP-110-5-2,SY_SETPROJPROP-20-5 : button gosub "更新",*int_button_update@proj_setProjProp
+		oncmd gosub *int_wndSetProp@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* 穴数変更 */
+		#define global SX_CHNUMHOLES	200
+		#define global SY_CHNUMHOLES	80
+		bgscr WID_CHNUMHOLES, SX_CHNUMHOLES,SY_NEWPROJ, 2 : hwnd_chnumholes=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(穴数変更)"
+		pos 5,20 : mes "[穴の数]"
+		pos 15,35 : mes "横 : " : pos 15+ginfo_mesx,33 : input bufInput(IDINPUT_x_numHole),25,16,3 : hwndInput(IDINPUT_x_numHole)=objinfo(stat,2)
+		pos 70,35 : mes "縦 : " : pos 70+ginfo_mesx,33 : input bufInput(IDINPUT_y_numHole),25,16,3 : hwndInput(IDINPUT_y_numHole)=objinfo(stat,2)
+		objsize 55,18
+		pos SX_CHNUMHOLES-55-5,SY_CHNUMHOLES-40-5 : button gosub "実行",*int_button_chnumholes_do@proj_resizeBoard
+		pos SX_CHNUMHOLES-55-5,SY_CHNUMHOLES-20-5 : button gosub "中止",*int_button_chnumholes_cancel@proj_resizeBoard
+		oncmd gosub *int_wndChgHoleNum@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* オブジェクトスライド */
+		#define global SX_SLIDEOBJS	200
+		#define global SY_SLIDEOBJS	80
+		bgscr WID_SLIDEOBJS, SX_SLIDEOBJS,SY_SLIDEOBJS, 2 : hwnd_slideObjs=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(オブジェクト全体をスライド)"
+		pos 5,20 : mes "[スライド量(ピッチ単位)]"
+		pos 15,35 : mes "横 : " : pos 15+ginfo_mesx,33 : input bufInput(IDINPUT_x_slideObjs),25,16,4
+		pos 70,35 : mes "縦 : " : pos 70+ginfo_mesx,33 : input bufInput(IDINPUT_y_slideObjs),25,16,4
+		objsize 55,18
+		pos SX_SLIDEOBJS-55-5,SY_SLIDEOBJS-40-5 : button gosub "実行",*int_button_slideObjs_do@proj_slideObjs
+		pos SX_SLIDEOBJS-55-5,SY_SLIDEOBJS-20-5 : button gosub "中止",*int_button_slideObjs_cancel@proj_slideObjs
+		oncmd gosub *int_wndSlideObjs@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* 自動アノテーション */
+		#define global SX_AUTOANN	200
+		#define global SY_AUTOANN	85
+		bgscr WID_AUTOANN, SX_AUTOANN,SY_AUTOANN, 2 : hwnd_autoAnn=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(自動アノテーション)"
+		pos 5,20 : mes "[オプション]"
+		objmode 1,1
+		pos 15,35 : objsize 150,20 : combox statCombox(IDCOMBOX_autoAnn), 200, "空白を詰める\n+x方向にソート\n-x方向にソート\n+y方向にソート\n-y方向にソート"
+		objsize 55,18
+		pos SX_AUTOANN-110-5-2,SY_AUTOANN-20-5 : button gosub "実行",*int_button_autoAnn_do@proj_ann
+		pos SX_AUTOANN-55-5,SY_AUTOANN-20-5 : button gosub "中止",*int_button_autoAnn_cancel@proj_ann
+		oncmd gosub *int_wndAutoAnn@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* 部品の追加 */
+		#const global SX_ADDPART	SX_LSIDE
+		#define global SY_ADDPART	600
+		bgscr WID_ADDPART, SX_ADDPART,SY_ADDPART, 2 : hwnd_addPart=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(部品の追加)"
+		pos 5,20 : mes "[モデルファミリ]" : objsize SX_ADDPART-20,20 : pos 10,35 : combox statCombox(IDCOMBOX_addPart), 200, bufCombox(IDCOMBOX_addPart) : hwndCombox(IDCOMBOX_addPart)=objinfo(stat,2)
+		pos 5,70 : mes "[説明]" : pos 10,85 : mesbox bufMesbox(IDMESBOX_addPart_PMFcaption), SX_ADDPART-20,30, 0 : hwndMesbox(IDMESBOX_addPart_PMFcaption)=objinfo(stat,2)
+		pos 5,120 : mes "[モデル]" : objsize SX_ADDPART-20,150 : pos 10,135 : listbox statListbox(IDLISTBOX_addPart), 0, bufListbox(IDLISTBOX_addPart) : hwndListbox(IDLISTBOX_addPart)=objinfo(stat,2)
+		pos 5,300 : mes "[プレビュー]"
+		pos 5,470 : mes "[説明]" : pos 10,485 : mesbox bufMesbox(IDMESBOX_addPart_PMexpl), SX_ADDPART-20,80, 0 : hwndMesbox(IDMESBOX_addPart_PMexpl)=objinfo(stat,2)
+		objsize 55,18
+		pos SX_ADDPART-110-5-2,SY_ADDPART-20-5 : button gosub "追加", *int_button_addPart_add@edit_uiAddPart
+		pos SX_ADDPART-55-5,SY_ADDPART-20-5 : button gosub "閉じる", *int_button_addPart_close@edit_uiAddPart
+		oncmd gosub *int_wndAddPart_WM_COMMAND@edit_uiAddPart, WM_COMMAND
+		/* 部品の追加用ウィンドウにおけるプレビュー用ウィンドウ */
+			#define global POSX_SCRL_PREVIEW_ADDPART	10
+			#define global POSY_SCRL_PREVIEW_ADDPART	315
+			#const global SXC_SCRL_PREVIEW_ADDPART	SX_ADDPART-20
+			#const global SYC_SCRL_PREVIEW_ADDPART	150
+		count_open_wndAddPart=0	//部品追加用ウィンドウが開いた回数
+	/* コメントタグ追加 */
+		#define global SX_ADDCMTTAG	200
+		#define global SY_ADDCMTTAG	270
+		bgscr WID_ADDCMTTAG, SX_ADDCMTTAG,SY_ADDCMTTAG,2 : hwnd_addCmtTag=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(コメントタグの追加)"
+		pos 5,20 : mes "[側]"
+			pos 50,35 : combox statCombox(IDCOMBOX_addCmtTag), 100, "表面\n裏面" : hwndCombox(IDCOMBOX_addCmtTag)=objinfo(stat,2)
+		pos 5,60 : mes "[色]"
+			objsize 40,18
+			pos 10,75 : mes "背景色 :" : pos 60,73 : input bufInput(IDINPUT_addCmtTag_bgColor), 65,16, 8 : hwndInput(IDINPUT_addCmtTag_bgColor)=objinfo(stat,2)
+			pos 130,73 : button gosub "参照",*int_button_wndAddCmtTag_browseColor@proj_addCmtTag : hwndButton(IDBUTTON_addCmtTag_browseBgColor)=objinfo(stat,2)
+			pos 10,95 : mes "文字色 :" : pos 60,93 : input bufInput(IDINPUT_addCmtTag_chrColor), 65,16, 8 : hwndInput(IDINPUT_addCmtTag_chrColor)=objinfo(stat,2)
+			pos 130,93 : button gosub "参照",*int_button_wndAddCmtTag_browseColor@proj_addCmtTag : hwndButton(IDBUTTON_addCmtTag_browsechrColor)=objinfo(stat,2)
+		pos 5,120 : mes "[コメント文字列]"
+			pos 10,135 : mesbox bufMesbox(IDMESBOX_addCmtTag), SX_ADDCMTTAG-10-5, 100, 1, 0
+		objsize 55,18
+		pos SX_ADDCMTTAG-110-5-2,SY_ADDCMTTAG-20-5 : button gosub "追加", *int_button_wndAddCmtTag_add@proj_addCmtTag
+		pos SX_ADDCMTTAG-55-5,SY_ADDCMTTAG-20-5 : button gosub "閉じる", *int_button_wndAddCmtTag_close@proj_addCmtTag
+		oncmd gosub *int_wndAddCmtTag@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* コメント等追加 */
+		#define global SX_COMMENT	200
+		#define global SY_COMMENT	230
+		bgscr WID_COMMENT, SX_COMMENT,SY_COMMENT,2 : hwnd_comment=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(コメント等変更)"
+		pos 5,20 : mes "[vals]"
+		repeat 3
+			pos 10,35+15*cnt : mes "val"+(1+cnt)+" :" : pos 40,35+15*cnt-2 : input bufInput(IDINPUT_comment_val1+cnt), SX_COMMENT-40-5,16, 0 : hwndInput(IDINPUT_comment_val1+cnt)=objinfo(stat,2)
+		loop
+		pos 5,85 : mes "[comment]"
+		pos 10,100 : mesbox bufMesbox(IDMESBOX_comment), SX_COMMENT-10-5,100, 1, 0 : hwndMesbox(IDMESBOX_comment)=objinfo(stat,2)
+		objsize 55,18
+		pos SX_COMMENT-110-5-2,SY_COMMENT-20-5 : button gosub "変更",*int_button_addComment_chg@edit_addComment
+		pos SX_COMMENT-55-5,SY_COMMENT-20-5 : button gosub "取消",*int_button_addComment_cancel@edit_addComment
+		oncmd gosub *int_wndAddComment@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* 配線の色変更 */
+		#define global SX_CHWIRECOLOR	200
+		#define global SY_CHWIRECOLOR	110
+		bgscr WID_CHWIRECOLOR, SX_CHWIRECOLOR,SY_CHWIRECOLOR, 2 : hwnd_chWireColor=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(配線色変更)"
+		pos 5,20 : mes "[RGB]"
+		bufInput(IDINPUT_chWireColor_R) = "255", "0", "0"
+		pos 10,35 : mes "R :" : pos 30,33 : input bufInput(IDINPUT_chWireColor_R), 30,16, 3 : hwndInput(IDINPUT_chWireColor_R)=objinfo(stat,2)
+		pos 70,35 : mes "G :" : pos 90,33 : input bufInput(IDINPUT_chWireColor_G), 30,16, 3 : hwndInput(IDINPUT_chWireColor_G)=objinfo(stat,2)
+		pos 130,35 : mes "B :" : pos 150,33 : input bufInput(IDINPUT_chWireColor_B), 30,16, 3 : hwndInput(IDINPUT_chWireColor_B)=objinfo(stat,2)
+		objsize 70,18 : pos SX_CHWIRECOLOR-70-5, 55 : button gosub "色の編集", *int_button_openColorDlg@edit_chWireColor
+		objsize 55,18
+		pos SX_CHWIRECOLOR-110-5-2,SY_CHWIRECOLOR-20-5 : button gosub "変更",*int_button_chWireColor_chg@edit_chWireColor
+		pos SX_CHWIRECOLOR-55-5,SY_CHWIRECOLOR-20-5 : button gosub "中止",*int_button_chWireColor_cancel@edit_chWireColor
+		oncmd gosub *int_wndChgWireColor@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+	/* 別の基板を統合 */
+		#define global SX_MERGE_BOARD	200
+		#define global SY_MERGE_BOARD	120
+		bgscr WID_MERGE_BOARD, SX_MERGE_BOARD,SY_MERGE_BOARD, 2 : hwnd_mergeBoard=hwnd
+		style = GetWindowLong(hwnd,GWL_STYLE) : SetWindowLong hwnd, GWL_STYLE, style|WS_CHILD^WS_POPUP
+		SetParent hwnd,hwnd_lside
+		rgbcolor BGC_LSIDE : boxf
+		sysfont 17 : rgbcolor charColor_LSIDE : objmode 1,1
+		pos 5,5 : mes "(別の基板を統合)"
+		pos 5,20 : mes "[ファイルパス]"
+		pos 10,33 : input bufInput(IDINPUT_path_mergeBoard),150,16,0 : hwndInput(IDINPUT_path_mergeBoard)=objinfo(stat,2)
+		objsize 30,18 : pos 165,33 : button gosub "参照",*int_button_browse_mergeBoard@proj_mergeBoard
+		pos 5,55 : mes "[貼付位置]"
+		pos 10,70 : mes "x : " : pos 10+ginfo_mesx,68 : input bufInput(IDINPUT_x_mergeBoard),25,16,3 : hwndInput(IDINPUT_x_mergeBoard)=objinfo(stat,2)
+		pos 60,70 : mes "y : " : pos 60+ginfo_mesx,68 : input bufInput(IDINPUT_y_mergeBoard),25,16,3 : hwndInput(IDINPUT_y_mergeBoard)=objinfo(stat,2)
+		objsize 55,18
+		pos SX_MERGE_BOARD-110-5-2,SY_MERGE_BOARD-20-5 : button gosub "読込",*int_button_do_mergeBoard@proj_mergeBoard
+		pos SX_MERGE_BOARD-55-5, SY_MERGE_BOARD-20-5 : button gosub "中止",*int_button_cancel_mergeBoard@proj_mergeBoard
+		oncmd gosub *int_wndMergeBoard@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+/*----------------------------------------------------------------------------*/
+
+/*--------------------▼ バッファウィンドウ作成 ▼--------------------*/
+*mkBufWnds	//バッファウィンドウ作成
+	/* ウィンドウID */
+		#enum global WID_GENERAL = WID_MERGE_BOARD+1	//汎用バッファ
+		#enum global WID_RESOURCE	//リソースバッファ
+		#enum global WID_PLIBUF	//部品ライブラリ画像(PLI)バッファ
+		#enum global WID_FRONTGPC	//表面グラフィックスバッファ
+		#enum global WID_BACKGPC	//裏面グラフィックスバッファ
+		#enum global WID_FRONTREGION	//表面リージョンバッファ
+		#enum global WID_BACKREGION	//裏面リージョンバッファ
+	/* 汎用バッファ */
+		sx_general=1 : sy_general=1 : buffer WID_GENERAL, sx_general,sy_general, 0
+	/* リソースバッファ */
+		/* 画像は基本的に上から下に並べていく */
+		sx_resBuf=100 : sy_resBuf=100 : buffer WID_RESOURCE, sx_resBuf,sy_resBuf, 0	//サイズは可変。足りなくなったら拡張する。
+		cnty_resBuf=0	//y方向カウンタ。これが示す位置より下は空いている。
+	/* PLIバッファ */
+		//※1つの部品の0,90,180,270°の画像とリージョン用のマスクが横に並んだものを、部品単位で縦に並べる。 
+		sx_PLIBUF=100 : sy_PLIBUF=100 : buffer WID_PLIBUF, sx_PLIBUF,sy_PLIBUF, 0
+		cnty_PLIBUF=0
+	/* 表面グラフィックスバッファ */
+		sx_GPC=1 : sy_GPC=1 : buffer WID_FRONTGPC, sx_GPC,sy_GPC
+	/* 裏面グラフィックスバッファ */
+		buffer WID_BACKGPC, sx_GPC,sy_GPC
+	/* 表面リージョンバッファ */
+		buffer WID_FRONTREGION, sx_GPC,sy_GPC
+	/* 裏面リージョンバッファ */
+		buffer WID_BACKREGION, sx_GPC,sy_GPC
+/*--------------------------------------------------------------------*/
+
+/*--------------------▼ 更新の確認 ▼--------------------*/
+netinit
+if (stat == 0) {
+	neturl "https://raw.githubusercontent.com/motchy869/marmelo/master/"
+	netrequest_get "VERSION.txt"
+	gsel WID_MAIN : oncmd gosub *int_mainWnd_WM_TIMER@timer_int, WM_TIMER
+	trash = SetTimer(hwnd, IDTIMER_CHKUPDATE, 50)
+}
+/*--------------------------------------------------------*/
+
+/*--------------------▼ 基本リソース,部品ライブラリ読み込み ▼--------------------*/
+loadResource
+*lab_loadPartsLib
+	progress=0 : msg=""
+	loadPartLib buf, *int_progress_loadPartsLib, progress, msg : if(stat) {gsel WID_SPLASH : dialog "部品ライブラリの読み込みに失敗しました。\nメッセージ :\n"+buf,1,appName : end}
+	goto *initSysVars
+	*int_progress_loadPartsLib	//進行状況通知割り込み
+		sendmsg hSB_splash, SB_SETTEXT, 0, msg
+		sendmsg hPB_splash, PBM_SETPOS, progress, 0
+		await 1
+		return
+/*---------------------------------------------------------------------------------*/
+
+/*--------------------▼ システム変数初期化 ▼--------------------*/
+*initSysVars
+	/* プロジェクトデータ */
+		OBJs=0	//PAWモジュール変数の配列。これで全ての部品と配線を管理する。
+		HOLEs=0	//HOLEモジュール変数の配列。これで全ての穴の情報を管理する。2次元的な穴の配置をZ字型に直列化して要素を並べてある。
+		dim projProp_int, IDX_PROJPROP_INT_TERM
+		sdim projProp_str, IDX_PROJPROP_STR_TERM
+	/* 選択範囲 */
+		ddim rectSel,IDX_RECTSEL_dummy
+		SideRectSel=0
+	projPath=""	//ロードされているプロジェクトのパス。空文字列ならファイルから読み込んだものではないことを示す。
+	/* オプション */
+		opt_front_showBackWires=TRUE
+		opt_back_showFrontWires=TRUE
+		opt_back_mirror=FALSE
+		opt_showCmtTags=TRUE
+	/* フラグ */
+		flg_projLoaded=FALSE
+		flg_projModNotSaved=FALSE
+		flg_mbdUpConverted=FALSE	//現在ロードされている回路図ファイルが、読み込み時に上方変換されたものであるか。
+		isLsideWindowOpen=FALSE
+		flg_rectSelExist=FALSE	//選択範囲が存在するかどうか
+		flg_ignoreNextWM_RBUTTONUP=FALSE	//次回のWM_RBUTTONUPを無視する
+	/* 状態 */
+		xofst_viewGPC=0 : yofst_viewGPC=0	//グラフィックスバッファにおけるビューの左上座標(オフセット)[px]
+		magDisp=cfgInt(IDCFG_INT_magDisp)	//表示倍率
+		stat_edit=ES_IDLE	//編集の状態
+/*----------------------------------------------------------------*/
+
+/*--------------------▼ 内部モジュール初期化 ▼--------------------*/
+*initInternalModules
+	dummy@timer_int	//モジュールをコンパイラに認識させる
+	dummy@window_int
+	initUndoRedo
+/*------------------------------------------------------------------*/
+
+/*--------------------▼ UI初期化 ▼--------------------*/
+*initUI
+	/* ウィンドウの配置 */
+		dim crect,4
+		/* メインウィンドウ */
+			wndstat=cfgInt(IDCFG_INT_wndStatMain)
+			if (wndstat==WNDSTAT_NORMAL) {
+				style=GetWindowLong(hwnd_main,GWL_STYLE)
+				crect=cfgInt(IDCFG_INT_posxcMain),cfgInt(IDCFG_INT_posycMain), crect(0)+cfgInt(IDCFG_INT_sxcMain)-1,crect(1)+cfgInt(IDCFG_INT_sycMain)-1 : AdjustWindowRect crect, style, TRUE : dup wrect,crect
+				SetWindowPos hwnd_main, DONTCARE_INT, wrect(0),wrect(1), wrect(2)-wrect(0)+1,wrect(3)-wrect(1)+1, SWP_NOZORDER
+				dup wrect, dummy
+			}
+			if (wndstat&WNDSTAT_MAXIMIZED) {sendmsg hwnd_main, WM_SYSCOMMAND, SC_MAXIMIZE}
+			if (wndstat&WNDSTAT_MINIMIZED) {sendmsg hwnd_main, WM_SYSCOMMAND, SC_MINIMIZE}
+			GetClientRect hwnd_main, crect : sxc_main=crect(2) : syc_main=crect(3)
+		/* 表面ウィンドウ */
+			wndstat=cfgInt(IDCFG_INT_wndStatFront)
+			if (wndstat==WNDSTAT_NORMAL) {
+				style=GetWindowLong(hwnd_front,GWL_STYLE)
+				crect=cfgInt(IDCFG_INT_posxcFront),cfgInt(IDCFG_INT_posycFront), crect(0)+cfgInt(IDCFG_INT_sxcFront)-1,crect(1)+cfgInt(IDCFG_INT_sycFront)-1 : AdjustWindowRect crect, style, FALSE : dup wrect,crect
+				ScreenToClient hwnd_board, wrect : ScreenToClient hwnd_board, wrect(2)
+				SetWindowPos hwnd_front, DONTCARE_INT, wrect(0),wrect(1), wrect(2)-wrect(0)+1,wrect(3)-wrect(1)+1, SWP_NOZORDER
+			}
+			if (wndstat&WNDSTAT_MAXIMIZED) {sendmsg hwnd_front, WM_SYSCOMMAND, SC_MAXIMIZE}
+			if (wndstat&WNDSTAT_MINIMIZED) {sendmsg hwnd_front, WM_SYSCOMMAND, SC_MINIMIZE}
+			GetClientRect hwnd_front, crect : sxc_front=crect(2) : syc_front=crect(3)
+		/* 裏面ウィンドウ */
+			wndstat=cfgInt(IDCFG_INT_wndStatBack)
+			if (wndstat==WNDSTAT_NORMAL) {
+				style=GetWindowLong(hwnd_back,GWL_STYLE)
+				crect=cfgInt(IDCFG_INT_posxcBack),cfgInt(IDCFG_INT_posycBack), crect(0)+cfgInt(IDCFG_INT_sxcBack)-1,crect(1)+cfgInt(IDCFG_INT_sycBack)-1 : AdjustWindowRect crect, style, FALSE : dup wrect,crect
+				ScreenToClient hwnd_board, wrect : ScreenToClient hwnd_board, wrect(2)
+				SetWindowPos hwnd_back, DONTCARE_INT, wrect(0),wrect(1), wrect(2)-wrect(0)+1,wrect(3)-wrect(1)+1, SWP_NOZORDER
+			}
+			if (wndstat&WNDSTAT_MAXIMIZED) {sendmsg hwnd_back, WM_SYSCOMMAND, SC_MAXIMIZE}
+			if (wndstat&WNDSTAT_MINIMIZED) {sendmsg hwnd_back, WM_SYSCOMMAND, SC_MINIMIZE}
+			GetClientRect hwnd_back, crect : sxc_back=crect(2) : syc_back=crect(3)
+	
+	gosub *int_main_WM_SIZE@window_int : arrangeMenuBarStat : arrangeStatBarStat : gsel WID_MAIN,1
+	refreshFrontAndBackWnd
+	onkey gosub *int_onkey@window_int
+	onexit gosub *confirmQuit
+	gsel WID_SPLASH,-1
+/*------------------------------------------------------*/
+
+/*--------------------▼ コマンドライン引数処理 ▼--------------------*/
+*procCmdLineArg
+	/* ファイルを渡されたら開いてみる */
+		exist dir_cmdline
+		if (strsize!=-1) {pattern_UI_openProj dir_cmdline}
+/*--------------------------------------------------------------------*/

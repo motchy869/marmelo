@@ -1,0 +1,39 @@
+/*
+	マクロ群
+*/
+
+/* 数学マクロ */
+	#define	global ctype LOWORD(%1)	((%1)&$FFFF)	//4バイトデータの上位2バイト
+	#define global ctype HIWORD(%1)	((%1)>>16)	//4バイトデータの下位2バイト
+	#define global ctype INV(%1)		((%1)^TRUE)	//真理値反転
+	#define global ctype BITINV(%1)	((%1)^0xFFFFFFFF)	//4バイトデータのビット反転
+	#define global ctype COVER(%1,%2)	(((%1)|(%2))==(%1))	//%1が%2をビット的にカバーするかどうか
+	#define global ctype RGB(%1,%2,%3) ((%1)<<16|(%2)<<8|(%3))
+	#define global ctype isTorF(%1)	((%1==TRUE)||(%1==FALSE))	//与えられた値がTRUE,FALSEのいずれかに当てはまるかどうか調べる
+	#define global ctype isStrTorF(%1)	((%1=="TRUE")||(%1=="FALSE"))	//与えられた文字列が"TRUE","FALSE"のいずれかに当てはまるかどうか調べる
+
+/* システムマクロ */
+	#ifdef _debug
+		#define global assertEx(%1)	if ((%1)==FALSE) {oncmd 0 : assert : oncmd 1}
+	#else
+		#define global assertEx(%1)	assert %1	//リリース時はコンパイルさせない
+	#endif
+	#define global ctype serializeVer(%1,%2,%3)	((%1)<<16|(%2)<<8|(%3))
+	#define global ctype verMajor(%1)		(((%1)>>16)&0xFF)
+	#define global ctype verMinor(%1)		(((%1)>>8)&0xFF)
+	#define global ctype verRevision(%1)	((%1)&0xFF)
+	//#define global rgbcolor(%1)	color ((%1)>>16)&0xFF,((%1)>>8)&0xFF,(%1)&0xFF //(2020/4/28) HSP3.6 beta2でrgbcolor()命令が標準機能になった。衝突回避の為無効化。
+	#define global numPartsCurProj		projProp_int@(IDX_PROJPROP_INT_numParts)
+	#define global numWiresCurProj		projProp_int@(IDX_PROJPROP_INT_numWires)
+	#define global numCmtTagsCurProj	projProp_int@(IDX_PROJPROP_INT_numCmtTags)
+	#define global numObjsCurProj		projProp_int@(IDX_PROJPROP_INT_numObjs)
+	#define global numHole_xCurProj	projProp_int@(IDX_PROJPROP_INT_numHole_x)
+	#define global numHole_yCurProj	projProp_int@(IDX_PROJPROP_INT_numHole_y)
+	#define global xTLBoardSurface	(-double(offsetGpcTopLeftHole)/pitch2px+0.5)
+	#define global yTLBoardSurface	xTLBoardSurface
+	#define global xBRBoardSurface	(double(numHole_xCurProj)-1.0+double(offsetGpcTopLeftHole)/pitch2px-0.5)
+	#define global yBRBoardSurface	(double(numHole_yCurProj)-1.0+double(offsetGpcTopLeftHole)/pitch2px-0.5)
+	#define global min_posxyCmtTag	xTLBoardSurface
+	#define global max_posxCmtTag	xBRBoardSurface
+	#define global max_posyCmtTag	yBRBoardSurface
+	#define global isReadOnlyCurProj	projProp_int@(IDX_PROJPROP_INT_readOnly)

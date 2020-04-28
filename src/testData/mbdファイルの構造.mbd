@@ -1,0 +1,127 @@
+{
+	"fileInfo":	{
+		"appName":	"marmelo",
+		"mbdVer":	"2.0.0"
+	},
+	"proj":	{
+		"properties":	{
+			"author":	"motchy",
+			"title":	"mbdファイルの構\造",
+			"subtitle":	"",
+			"explanation":	"mbdファイルの構\造説明用データ。",
+			"read-only":	true
+		},
+		"statistics":	{
+			"numHole":	[25, 15],
+			"numParts":	2,
+			"numWires":	7,
+			"numCmtTags":	2
+		},
+		"options":	{
+			"showBackWiresOnFrontWindow":	true,
+			"showFrontWiresOnBackWindow":	true,
+			"mirrorModeOnBackWindow":	false,
+			"showCmtTags":	true
+		},
+		"parts":	[{
+				"namePMF":	"R",
+				"namePmodel":	"RD-7.62",
+				"deg":	0,
+				"pos":	[0, 0],
+				"zOrder":	0,
+				"annotation":	0,
+				"vals":	["1kΩ", "5%", "1/4W"],
+				"comment":	"カーボン 1/4W 1kΩ"
+			}, {
+				"namePMF":	"L",
+				"namePmodel":	"micro-2.54",
+				"deg":	90,
+				"pos":	[5, 3],
+				"zOrder":	1,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"wires":	[{
+				"side":	"front",
+				"shielded":	false,
+				"pos":	[0, 0],
+				"pos2":	[0, 2],
+				"color":	"0xFF0000",
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"front",
+				"shielded":	false,
+				"pos":	[0, 2],
+				"pos2":	[4, 2],
+				"color":	"0xFF0000",
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"front",
+				"shielded":	false,
+				"pos":	[4, 2],
+				"pos2":	[4, 0],
+				"color":	"0xFF0000",
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"front",
+				"shielded":	false,
+				"pos":	[0, 2],
+				"pos2":	[5, 4],
+				"color":	"0xFF0000",
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[5, 3],
+				"pos2":	[5, 0],
+				"color":	"0xFF",
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[5, 0],
+				"pos2":	[6, 0],
+				"color":	"0xFF",
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[5, 0],
+				"pos2":	[0, 2],
+				"color":	"0xFF",
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"cmtTags":	[{
+				"side":	"front",
+				"xyb":	["0.545455", "4.90909"],
+				"bgColor":	"0x0",
+				"chrColor":	"0xFFFFFF",
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	"comment tag0"
+			}, {
+				"side":	"back",
+				"xyb":	["0", "2"],
+				"bgColor":	"0xFFFFFF",
+				"chrColor":	"0x0",
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	"comment tag1"
+			}]
+	}
+}

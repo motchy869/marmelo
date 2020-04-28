@@ -1,0 +1,7 @@
+{
+	"explanation":	"マイクロインダクタ。12.7mmピッチ。",
+	"numLeads":	2,
+	"rxLeads":	[5],
+	"ryLeads":	[0],
+	"posLeadInImg":	[1, 5]
+}

@@ -1,0 +1,7 @@
+{
+	"explanation":	"L型ピンヘッダ。1x1",
+	"numLeads":	1,
+	"rxLeads":	[0],
+	"ryLeads":	[0],
+	"posLeadInImg":	[5, 38]
+}

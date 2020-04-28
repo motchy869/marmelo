@@ -1,0 +1,7 @@
+{
+	"explanation":	"水晶発振器。TO92パッケージ。",
+	"numLeads":	3,
+	"rxLeads":	[1, 2],
+	"ryLeads":	[0, 0],
+	"posLeadInImg":	[2, 11]
+}

@@ -1,0 +1,42 @@
+/*
+	リソース管理
+*/
+
+/* 変数定義 */
+	sxyImg_hole=0 : sxyImg_Jnc=0	//ホール,ジャンクション画像の寸法
+
+#module resource	//リソース管理
+	dummy=0	//未初期化変数警告回避
+	
+	#deffunc loadResource
+		//※ リソースの存在,品質は全面信頼する
+		/* 基板 */
+			chdir dir_bin@+"\\res\\imgs\\board"
+			/* 穴 */
+				mimg_getXYsizeFromFile "png","hole_front.png",sxyImg_hole@,dummy
+				/* 必要ならバッファを拡張 */
+					flg_expand=FALSE : sx=sx_resBuf@ : sy=sy_resBuf@
+					if (3*sxyImg_hole@ > sx_resBuf@) {flg_expand=TRUE : sx=3*sxyImg_hole@}
+					if (sxyImg_hole@ > sy_resBuf@) {flg_expand=TRUE : sy=sxyImg_hole@}
+					if (flg_expand) {resizeBufWnd WID_RESOURCE,sx,sy}
+				gsel WID_RESOURCE
+				pos 0,cnty_resBuf@ : picload "hole_front.png",1 : pos sxyImg_hole@,cnty_resBuf@ : picload "hole_back.png",1 : pos 2*sxyImg_hole@,cnty_resBuf@ : picload "hole_back_pin.png",1
+				srcxImg_frontHole@=0 : srcyImg_frontHole@=cnty_resBuf@
+				srcxImg_backHole@=sxyImg_hole@ : srcyImg_backHole@=cnty_resBuf@
+				srcxImg_backHoleWithPin@=2*sxyImg_hole@ : srcyImg_backHoleWithPin@=cnty_resBuf@
+				cnty_resBuf@ += sxyImg_hole@
+		/* 仮想オブジェクト */
+			chdir dir_bin@+"\\res\\imgs\\imaginaryObj"
+			/* ジャンクション */
+				mimg_getXYsizeFromFile "png","junction_front.png",sxyImg_Jnc@,dummy
+				/* 必要ならバッファを拡張 */
+					flg_expand=FALSE : sx=sx_resBuf@ : sy=sy_resBuf@
+					if (2*sxyImg_Jnc@ > sx_resBuf@) {flg_expand=TRUE : sx=2*sxyImg_Jnc@}
+					if (sxyImg_Jnc@ > sy_resBuf@) {flg_expand=TRUE : sy=sxyImg_Jnc@}
+					if (flg_expand) {resizeBufWnd WID_RESOURCE,sx,sy : sx_resBuf@=sx : sy_resBuf@=sy}
+				gsel WID_RESOURCE
+				pos 0,cnty_resBuf@ : picload "junction_front.png",1 : pos sxyImg_Jnc@,cnty_resBuf@ : picload "junction_back.png",1
+				srcxImg_frontJnc@=0 : srcyImg_frontJnc@=cnty_resBuf@ : srcxImg_backJnc@=sxyImg_Jnc@ : srcyImg_backJnc@=cnty_resBuf@
+				cnty_resBuf@ += sxyImg_Jnc@
+		return
+#global

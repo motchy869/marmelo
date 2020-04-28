@@ -1,0 +1,253 @@
+/*
+	部品ライブラリ管理
+*/
+
+/*
+	略語整理
+	
+	PMF : 部品モデルファミリ
+	Pmodel	: 部品モデル
+*/
+
+#module PMDat namePmodel,expl,numLeads,rxLeads,ryLeads,sxImgs,syImgs,srcxImgs,srcyImgs,srcxRgMsks,srcyRgMsks,xLeadInImgs,yLeadInImgs	//部品モデルデータ
+	/*
+		namePmodel : Pmodel名
+		expl	:	説明文
+		numLeads : 足の数
+		rxLeads,ryLeads			: 0°における1番目の足に対する2番目以降の足の相対ピッチ座標
+		sxImgs,syImgs			: 0,90,180,270°の画像の寸法
+		srcxImgs,srcyImgs		: PLIバッファにおける0,90,180,270°の画像の位置
+		srcxRgMsks,srcyRgMsks	: PLIバッファにおける0,90,180,270°のリージョンマスク画像の位置
+		xLeadInImgs,yLeadInImgs	: 0,90,180,270°の画像における1番目の足のオフセット
+	*/
+	id=0
+	#modinit str namePmodel_, str expl_, int numLeads_, array rxLeads_,array ryLeads_, int sxImg_,int syImg_, int srcxImg_,int srcyImg_, int xLeadInImg_,int yLeadInImg_
+		/*
+			sxImg_,syImg_		: 0°の画像の寸法
+			srcxImg_,srcyImg_	: PLIバッファにおける0°の画像の位置
+			xLeadInImg,yLeadInImg_	: 0°の画像における1番目の足のオフセット
+		*/
+		assertEx ((strlen(namePmodel_)>=1)&&(numLeads_>=1)&&(sxImg_>=1)&&(syImg_>=1))
+		namePmodel=namePmodel_ : expl=expl_ : numLeads=numLeads_
+		dim rxLeads,numLeads-1 : dim ryLeads,numLeads-1 : repeat numLeads_-1 : rxLeads(cnt)=rxLeads_(cnt) : ryLeads(cnt)=ryLeads_(cnt) : loop
+		sxImgs = sxImg_,syImg_,sxImg_,syImg_ : syImgs=syImg_,sxImg_,syImg_,sxImg_
+		srcxImgs = srcxImg_,srcxImgs(0)+sxImg_,srcxImgs(1)+syImg_,srcxImgs(2)+sxImg_ : srcyImgs=srcyImg_,srcyImg_,srcyImg_,srcyImg_
+		repeat 4 : srcxRgMsks(cnt)=srcxImgs(cnt)+2*(sxImg_+syImg_) : srcyRgMsks(cnt)=srcyImg_ : loop
+		xLeadInImgs = xLeadInImg_,syImg_-yLeadInImg_-1,sxImg_-xLeadInImg_-1,yLeadInImg_ : yLeadInImgs = yLeadInImg_,xLeadInImg_,syImg_-yLeadInImg_-1,sxImg_-xLeadInImg_-1
+		mref id,2
+		return id
+	
+	#modcfunc local getNamePmodel
+		return namePmodel
+	#modcfunc local getExpl
+		return expl
+	#modcfunc local getNumLeads
+		return numLeads
+	#modfunc local dupRxyLeads array rxLeads_,array ryLeads_
+		dup rxLeads_,rxLeads : dup ryLeads_,ryLeads
+		return
+	#modfunc local dupSxyImgs array sxImgs_,array syImgs_
+		dup sxImgs_,sxImgs : dup syImgs_,syImgs
+		return
+	#modfunc local dupSrcxyImgs array srcxImgs_,array srcyImgs_
+		dup srcxImgs_,srcxImgs : dup srcyImgs_,srcyImgs
+		return
+	#modfunc local dupSrcxyRgMsks array srcxRgMsks_,array srcyRgMsks_
+		dup srcxRgMsks_,srcxRgMsks : dup srcyRgMsks_,srcyRgMsks
+		return
+	#modfunc local dupXyLeadInImgs array xLeadInImgs_,array yLeadInImgs_
+		dup xLeadInImgs_,xLeadInImgs : dup yLeadInImgs_,yLeadInImgs
+		return
+#global
+
+#module PMFDat namePMF,numParts,PMDats, caption	//部品モデルファミリデータ
+	/*
+		namePMF		: PMF名
+		numParts	: 擁するパーツ数
+		Pmodels		: Pmodelモジュール変数の配列
+		caption		: 短い説明
+	*/
+	id=0
+	#modinit str namePMF_, str caption_
+		assertEx (strlen(namePMF_)>=1)
+		namePMF=namePMF_ : numParts=0 : caption=caption_
+		mref id,2
+		return id
+	
+	#modfunc local addPmodel str namePmodel_, str expl_, int numLeads_, array rxLeads_,array ryLeads_, int sxImg_,int syImg_, int srcxImg_,int srcyImg_, int xLeadInImg_,int yLeadInImg_	//Pmodel追加
+		assertEx ((strlen(namePmodel_)>=1)&&(numLeads_>=1)&&(sxImg_>=1)&&(syImg_>=1))
+		newmod PMDats,PMDat, namePmodel_, expl_, numLeads_, rxLeads_,ryLeads_, sxImg_,syImg_, srcxImg_,srcyImg_, xLeadInImg_,yLeadInImg_ : numParts++
+		return stat
+	#modcfunc local getNamePMF
+		return namePMF
+	#modcfunc local getNumParts
+		return numParts
+	#modcfunc local getCaption
+		return caption
+	
+	#modcfunc local existPmodel int idPMDat_
+		if (idPMDat_<0) {return FALSE} : if (varuse(PMDats(idPMDat_))==0) {return FALSE}
+		return TRUE
+	#modcfunc local getNamePmodel int idPMDat_
+		assertEx existPmodel(thismod,idPMDat_)
+		return getNamePmodel@PMDat(PMDats(idPMDat_))
+	#modcfunc local getExpl int idPMDat_
+		assertEx existPmodel(thismod,idPMDat_)
+		return getExpl@PMDat(PMDats(idPMDat_))
+	#modcfunc local getNumLeads int idPMDat_
+		assertEx existPmodel(thismod,idPMDat_)
+		return getNumLeads@PMDat(PMDats(idPMDat_))
+	#modfunc local dupRxyLeads int idPMDat_, array rxLeads_,array ryLeads_
+		assertEx existPmodel(thismod,idPMDat_)
+		dupRxyLeads@PMDat PMDats(idPMDat_), rxLeads_,ryLeads_
+		return
+	#modfunc local dupSxyImgs int idPMDat_, array sxImgs_,array syImgs_
+		assertEx existPmodel(thismod,idPMDat_)
+		dupSxyImgs@PMDat PMDats(idPMDat_), sxImgs_,syImgs_
+		return
+	#modfunc local dupSrcxyImgs int idPMDat_, array srcxImgs_,array srcyImgs_
+		assertEx existPmodel(thismod,idPMDat_)
+		dupSrcxyImgs@PMDat PMDats(idPMDat_), srcxImgs_,srcyImgs_
+		return
+	#modfunc local dupSrcxyRgMsks int idPMDat_, array srcxRgMsks_,array srcyRgMsks_
+		assertEx existPmodel(thismod,idPMDat_)
+		dupSrcxyRgMsks@PMDat PMDats(idPMDat_), srcxRgMsks_,srcyRgMsks_
+		return
+	#modfunc local dupXyLeadInImgs int idPMDat_, array xLeadInImgs_,array yLeadInImgs_
+		assertEx existPmodel(thismod,idPMDat_)
+		dupXyLeadInImgs@PMDat PMDats(idPMDat_), xLeadInImgs_,yLeadInImgs_
+		return
+	#modcfunc local namePmodel2idPMDat str namePmodel_
+		rc=-1 : foreach PMDats : if (getNamePmodel@PMDat(PMDats(cnt))==namePmodel_) {rc=cnt : break} : loop
+		assertEx (rc!=-1)
+		return rc
+	#modfunc local enumIdPmodelDats array idPMDats_
+		//戻り値=numParts
+		if (numParts) {cntParts=0 : foreach PMDats : idPMDats_(cntParts)=cnt : cntParts++ : loop}
+		return numParts
+#global
+
+/* 変数定義 */
+	PMFDats=0	//PMFDatの配列
+	numPMFs=0	//ロードされているPMFの数
+
+#module partsLib	//部品ライブラリの処理
+	buf = "" : caption="" : expl="" : numLeads=0 : rxLeads=0 : ryLeads=0 : sxImg=0 : syImg=0 : srcxImg=0 : srcyImg=0 : xLeadInImg=0 : yLeadInImg=0	//未初期化変数警告回避
+	
+	#deffunc clearPMFDats
+		if (numPMFs@>0) {foreach PMFDats@ : delmod PMFDats@(cnt) : loop : numPMFs@=0}
+	return
+	
+	#deffunc loadPartLib var errMsg_, label lab_int_notifyProgress, var progress_, var msg_	//部品ライブラリのロード
+		/*
+			(out) errMsg_ : エラーメッセージの格納先
+			(in) lab_int_notifyProgress : 進行状況(%)通知時のgosub先ラベル。gosub先では progress_ で進行状況を、msg_ で処理内容を表すメッセージを取得できる。
+			(out) progress_ : 進行状況を格納する変数
+			(out) msg_ : 処理内容を表すメッセージを格納する変数
+			
+			[stat]
+				(0,1)=(正常,エラー)
+		*/
+		/* ファミリ */
+			chdir dir_bin@+"\\lib"
+			/* まずモデルの総数を調べる */
+				numPmodels=0
+				buf="" : dirlist buf,"*",5 : notesel buf : namePMFs="" : numPMFs@=notemax : repeat notemax : noteget namePMFs(cnt),cnt : loop	//ファミリ名リスト
+				repeat numPMFs@
+					dir_curPMF=dir_bin@+"\\lib\\"+namePMFs(cnt)
+					chdir dir_curPMF : dirlist buf,"*",5 : notesel buf : numPmodels+=notemax
+				loop
+			/* PLIバッファを必要サイズで初期化する(逐次拡張するより高速になる) */
+				sxNeed = 0 : syNeed = 0
+				cntImgsAnalyzed = 0
+				repeat numPMFs@
+					dir_curPMF=dir_bin@+"\\lib\\"+namePMFs(cnt) : chdir dir_curPMF
+					dirlist buf,"*",5 : notesel buf : namePmodels_curPMF="" : numParts_curPMF=notemax : repeat notemax : noteget namePmodels_curPMF(cnt),cnt : loop	//モデル名リスト
+					cnt1=cnt
+					repeat numParts_curPMF
+						chdir dir_curPMF+"\\"+namePmodels_curPMF(cnt)
+						exist "deg0.png" : if (strsize==-1) {errMsg_=namePMFs(cnt1)+"/"+namePmodels_curPMF(cnt)+"/deg0.png がありません。" : flg_error=TRUE : break}
+						mimg_getXYsizeFromFile "png","deg0.png", sxImg,syImg
+						sxNeed = larger_int(sxNeed, (sxImg+syImg)*4) : syNeed += larger_int(sxImg,syImg)
+						cntImgsAnalyzed++
+						msg_ = "画像サイズを調査中... " + namePmodels_curPMF(cnt) : progress_ = 50*cntImgsAnalyzed/numPmodels : gosub lab_int_notifyProgress
+					loop
+					if (flg_error) {break}
+				loop
+				if (flg_error) {return flg_error}
+				resizeBufWnd WID_PLIBUF, sxNeed,syNeed : sx_PLIBUF@=sxNeed : sy_PLIBUF@=syNeed
+			/* ロード */
+				cntPmodelsLoaded=0
+				repeat numPMFs@
+					dir_curPMF=dir_bin@+"\\lib\\"+namePMFs(cnt) : chdir dir_curPMF
+					flg_error=FALSE
+					gosub *analyzePMFInfoFile : if (flg_error) {return 1}
+					newmod PMFDats@, PMFDat, namePMFs(cnt), caption : idPMFDat=stat
+					/* 部品 */
+						dirlist buf,"*",5 : notesel buf : namePmodels_curPMF="" : numParts_curPMF=notemax : repeat notemax : noteget namePmodels_curPMF(cnt),cnt : loop
+						cnt1=cnt
+						repeat numParts_curPMF
+							chdir dir_curPMF+"\\"+namePmodels_curPMF(cnt)
+							gosub *analyzeDataFile : if (flg_error) {errMsg_=namePMFs(cnt1)+"/"+namePmodels_curPMF(cnt)+"/data.json が壊れています。" : break}
+							gosub *analyzeImgs : if (flg_error) {break}
+							addPmodel@PMFDat PMFDats@(idPMFDat), namePmodels_curPMF(cnt), expl, numLeads, rxLeads,ryLeads, sxImg,syImg, srcxImg,srcyImg, xLeadInImg,yLeadInImg
+							cntPmodelsLoaded++
+							msg_ = "部品モデルを解析中... " + namePmodels_curPMF(cnt) : progress_ = 50 + 50*cntPmodelsLoaded/numPmodels : gosub lab_int_notifyProgress
+						loop
+						if (flg_error) {break}
+				loop
+		return flg_error
+		*analyzePMFInfoFile//PMFinfo.jsonの解析
+			exist "PMFinfo.json" : if (strsize==-1) {errMsg_=namePMFs(cnt1)+"/PMFinfo.json がありません。" : flg_error=TRUE : return}
+			sdim PMFinfoFile,64 : notesel PMFinfoFile : noteload "PMFinfo.json"
+			caption = jsonGets_f("caption", jsonOpen_f(PMFinfoFile), "*") : jsonclose@
+			if (caption=="*") {errMsg_=namePMFs(cnt1)+"/PMFinfo.json が壊れています。\ncaption がありません。" : flg_error=TRUE}
+			return
+		*analyzeDataFile	//data.jsonの解析
+			exist "data.json" : if (strsize==-1) {errMsg_=namePMFs(cnt1)+"/"+namePmodels_curPMF(cnt)+"/data.json がありません。" : flg_error=TRUE : return}
+			sdim dataFile,64 : notesel dataFile : noteload "data.json"
+			#define errReturn	gosub *err_analyzeDataFile : return
+			json = jsonOpen_f(dataFile)
+			expl = jsonGets_f("explanation", json, "*") : if (expl == "*") {errReturn}
+			numLeads = jsonGeti_f("numLeads", json, 0) : if (numLeads == 0) {errReturn}
+			if (numLeads >= 2) {
+				dim rxLeads, numLeads-1 : if (jsonGetIntArray(rxLeads, jsonGetObj_f("rxLeads", json)) != numLeads-1) {errReturn}
+				dim ryLeads, numLeads-1 : if (jsonGetIntArray(ryLeads, jsonGetObj_f("ryLeads", json)) != numLeads-1) {errReturn}
+			}
+			if (jsonGetIntArray(buf, jsonGetObj_f("posLeadInImg", json)) != 2) {errReturn} : xLeadInImg = buf(0) : yLeadInImg = buf(1)
+			jsonclose@
+			return
+		*err_analyzeDataFile
+			flg_error=TRUE : jsonclose@
+			return
+		*analyzeImgs	//画像の解析
+			//exist "deg0.png" : if (strsize==-1) {errMsg_=namePMFs(cnt1)+"/"+namePmodels_curPMF(cnt)+"/deg0.png がありません。" : flg_error=TRUE : return}
+			mimg_getXYsizeFromFile "png","deg0.png", sxImg,syImg
+			/* PLIバッファに展開 */
+				/* 必要ならバッファを広げる */
+					sxNeed=(sxImg+syImg)*4 : syNeed=larger_int(sxImg,syImg)
+					flg_expand=FALSE : sx=sx_PLIBUF@ : sy=sy_PLIBUF@
+					if (sxNeed>sx_PLIBUF@) {flg_expand=TRUE : sx=sxNeed}
+					if (cnty_PLIBUF@+syNeed>sy_PLIBUF@) {flg_expand=TRUE : sy=cnty_PLIBUF@+syNeed}
+					if (flg_expand) {resizeBufWnd WID_PLIBUF,sx,sy : sx_PLIBUF@=sx : sy_PLIBUF@=sy}
+				gsel WID_PLIBUF : countx=0 : srcxImg=0 : srcyImg=cnty_PLIBUF@
+				//グラフィック
+				pos countx,cnty_PLIBUF@ : picload "deg0.png",1 : countx+=sxImg	//0°の画像
+				repeat 3,1 : pos countx,cnty_PLIBUF@ : rotBmp90DegStep_PlgBlt WID_PLIBUF, 0,cnty_PLIBUF@, sxImg,syImg, 90*cnt : countx+=((1^cnt)&1)*sxImg + (cnt&1)*syImg : loop	//90,180,270°の画像
+				//マスク
+				/* 0°のマスクを生成 */
+					rgbcolor 0xFFFFFF-transparentColor : boxf (sxImg+syImg)*2,cnty_PLIBUF@, (sxImg+syImg)*2+sxImg-1,cnty_PLIBUF@+syImg-1 : gmode 4, sxImg,syImg, 256 : rgbcolor transparentColor : pos (sxImg+syImg)*2,cnty_PLIBUF@ : gcopy WID_PLIBUF, 0,cnty_PLIBUF@
+					BitBlt hdc, (sxImg+syImg)*2,cnty_PLIBUF@, sxImg,syImg, hdc, 0,cnty_PLIBUF@, SRCINVERT : BitBlt hdc, (sxImg+syImg)*2,cnty_PLIBUF@, sxImg,syImg, NULL, 0,0, DSTINVERT : countx+=sxImg
+				repeat 3,1 : pos countx,cnty_PLIBUF@ : rotBmp90DegStep WID_PLIBUF, (sxImg+syImg)*2,cnty_PLIBUF@, sxImg,syImg, 90*cnt : countx+=((1^cnt)&1)*sxImg + (cnt&1)*syImg : loop	//90,180,270°
+				cnty_PLIBUF@+=larger_int(sxImg,syImg)
+			return
+	
+	#defcfunc namePMF2idPMFDat str namePMF_	//部品モデルファミリ名→PMFDatのインデックス
+		rc=-1 : foreach PMFDats@ : if (getNamePMF@PMFDat(PMFDats@(cnt))==namePMF_) {rc=cnt : break} : loop
+		assertEx (rc!=-1)
+		return rc
+	
+	#defcfunc existPMF int idPMFDat_	//与えられた部品モデルファミリが存在するか
+		if ((numPMFs@==0)||(idPMFDat_<0)) {return FALSE} : if (varuse(PMFDats@(idPMFDat_))==0) {return FALSE}
+		return TRUE
+#global

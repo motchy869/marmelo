@@ -1,0 +1,231 @@
+/*
+	定数群
+*/
+
+/* 数学定数 */
+	#define global NULL		0
+	#define global TRUE		1
+	#define global FALSE	0
+	#define global DONTCARE_INT	0
+	#define global DONTCARE_DBL	0.0
+	#define global DONTCARE_STR	""
+	#const global MIN_INT	0x80000000
+	#const global MAX_INT	0x7FFFFFFF
+	#const global EPSILON_ERR	1e-6	//計算において誤差と見なす最大値
+
+/* システム定数 */
+	/* アプリ情報 */
+		#define global appName	"marmelo"
+		#define global authorName	"motchy"
+		/* バージョン */
+			//メジャー,マイナー,リビジョンにこの順に8bitずつ割り当てて配置したものをバージョン数値とする
+			/* アプリ */
+				#define global APPVER_MAJOR		1
+				#define global APPVER_MINOR		3
+				#define global APPVER_REVISION	8
+				#const global APPVER	serializeVer(APPVER_MAJOR, APPVER_MINOR, APPVER_REVISION)
+				APPVER_STR = str(APPVER_MAJOR) + "." + APPVER_MINOR + "." + APPVER_REVISION
+			/* 直接サポートする回路図ファイル */
+				#define global MBDVER_MAJOR		2
+				#define global MBDVER_MINOR		0
+				#define global MBDVER_REVISION	0
+				#const global MBDVER_DS serializeVer(MBDVER_MAJOR, MBDVER_MINOR, MBDVER_REVISION)	//DS: "Directly Support"
+				MBDVER_DS_STR = str(MBDVER_MAJOR) + "." + MBDVER_MINOR + "." + MBDVER_REVISION
+		#define global nameExt	"mbd"	//拡張子。marmeloBoardData
+	
+	/* 識別子 */
+		#enum global SIDE_FRONT=0
+		#enum global SIDE_BACK
+		#enum global OBJTYPE_PART=0
+		#enum global OBJTYPE_WIRE
+		#enum global OBJTYPE_CMTTAG
+		#enum global WIRESIDE_FRONT=0
+		#enum global WIRESIDE_BACK
+		
+	/* 描画 */
+		#define global pitch2px	11	//1ピッチ=11px
+		#define global offsetGpcTopLeftHole	22	//グラフィックバッファにおける左上の穴のオフセット[px]
+		#define global t_wire_px_GPC	4	//グラフィックバッファ上でのワイヤの太さ[px]
+		#define global t_wire_px_REG	6	//リージョンバッファ上でのワイヤの太さ[px]。(触りやすくするためにグラフィックスより少し太くする)
+		#const global transparentColor RGB(255,0,255)
+		#const global boardColor	RGB(100,170,100)
+		#const global dfltClrFrontBareWire	RGB(255,0,0)	//表面裸線のデフォルト色
+		#const global dfltClrFrontShieldedWire	RGB(255,100,100)	//表面被覆線のデフォルト色
+		#const global dfltClrBackBareWire	RGB(0,0,255)
+		#const global dfltClrBackShieldedWire	RGB(100,255,100)
+		#const global dfltClrFrontWire_autoRouteFailed	RGB(255,255,0)	//自動配線に失敗した表面配線のデフォルト色
+		#const global dfltClrBackWire_autoRouteFailed	RGB(0,255,255)
+		#const global partBBcolor	RGB(0,0,0)	//パーツのバウンディングボックスの色
+		#const global BGC_FRONT_BACK	RGB(80,80,80)
+		#const global BGC_REGION	RGB(255,255,255)
+		#define global OPACITY_OSW	128	//反対面のワイヤを描くときの不透明度
+		#define global FONT_CMTTAG	msgothic	//コメントタグのフォント
+		#define global FONTSIZE_CMTTAG	12	//コメントタグのフォントサイズ
+		#define global OPACITY_CMTTAG	128	//コメントタグの不透明度
+		#const global defltBGClrCmtTag	RGB(255,255,255)	//コメントタグのデフォルト背景色
+		#const global defltChrClrCmtTag	RGB(0,0,0)	//コメントタグのデフォルト文字色
+		#const global COLOR_INTERIOR_RECTSEL	RGB(0,128,255)	//選択範囲内部の色
+		#const global COLOR_BOUND_RECTSEL	RGB(0,0,255)	//選択範囲の境界の色
+		#define global OPACITY_RECTSEL	128	//選択範囲の不透明度
+		#define global MAX_MAGDISP	4	//表示倍率の最高値
+	
+	/* GUI */
+		/* ウィンドウの状態 */
+			#define global WNDSTAT_NORMAL		0b000
+			#define global WNDSTAT_MAXIMIZED	0b010
+			#define global WNDSTAT_MINIMIZED	0b100
+		/* ウィンドウメッセージ */
+			#define global WM_TIMER	0x0113
+			#define global WM_SIZE			0x005
+				#define global SIZE_RESTORED	0
+			#define global WM_SETTEXT		0x00C
+			#define global WM_GETTEXT		0x00D
+			#define global WM_GETTEXTLENGTH	0x00E
+			#define global WM_GETMINMAXINFO	0x024
+			#define global WM_NCLBUTTONDOWN	0x0A1
+			#define global WM_KEYDOWN		0x100
+			#define global WM_COMMAND		0x111
+			#define global WM_SYSCOMMAND	0x112
+				#define global SC_SIZE		0xF000
+				#define global SC_MOVE		0xF010
+				#define global SC_MINIMIZE	0xF020
+				#define global SC_MAXIMIZE	0xF030
+				#define global SC_CLOSE		0xF060
+			#define global BM_SETCHECK		0x0F1
+			#define global BST_CHECKED		1
+			#define global BST_UNCHECKED	0
+			#define global CB_ERR			-1
+			#define global CB_ADDSTRING		0x143
+			#define global CB_GETCURSEL		0x147
+			#define global CB_GETLBTEXT		0x148
+			#define global CB_RESETCONTENT	0x14B
+			#define global CB_SETCURSEL		0x14E
+			#define global CBN_SELCHANGE	1
+			#define global LB_ERR			-1
+			#define global LB_ADDSTRING		0x180
+			#define global LB_RESETCONTENT	0x184
+			#define global LB_SETCURSEL		0x186
+			#define global LB_GETCURSEL		0x188
+			#define global LB_GETTEXT		0x189
+			#define global LBN_SELCHANGE	1
+			#define global WM_MOUSEMOVE		0x200
+			#define global WM_LBUTTONDOWN	0x201
+			#define global WM_LBUTTONUP		0x202
+			#define global WM_RBUTTONDOWN	0x204
+			#define global WM_RBUTTONUP		0x205
+			#define global WM_MOUSEWHEEL	0x20A
+				#define global WHEEL_DELTA	0x078
+			#define global WM_DROPFILES		0x233
+			#define global PBM_SETPOS		0x402
+		/* コモンコントロール */
+			#define global CCS_BOTTOM	0x3
+			#define PBS_SMOOTH	0x1
+			#define global SB_SETTEXT	0x401
+			#define global SB_SETPARTS	0x404
+		/* タイマー */
+			//Win32APIのタイマーで使用するID
+			#enum global IDTIMER_CHKUPDATE = 1	//0は失敗と区別できないからダメらしい
+	
+	/* 設定データ
+		現在のところ設定内容は単純なので配列で管理する。
+		アプリ全体で使用する設定配列名は cfgInt とする。
+		各番地とその意味は次の定数群で規定される。
+	*/
+		#enum global IDCFG_INT_wndStatMain=0
+		#enum global IDCFG_INT_posxcMain
+		#enum global IDCFG_INT_posycMain
+		#enum global IDCFG_INT_sxcMain
+		#enum global IDCFG_INT_sycMain
+		#enum global IDCFG_INT_magDisp
+		#enum global IDCFG_INT_wndStatFront
+		#enum global IDCFG_INT_posxcFront
+		#enum global IDCFG_INT_posycFront
+		#enum global IDCFG_INT_sxcFront
+		#enum global IDCFG_INT_sycFront
+		#enum global IDCFG_INT_wndStatBack
+		#enum global IDCFG_INT_posxcBack
+		#enum global IDCFG_INT_posycBack
+		#enum global IDCFG_INT_sxcBack
+		#enum global IDCFG_INT_sycBack
+		#enum global MAX_IDCFG_INT
+	
+	/* プロジェクトのプロパティ */
+		/* int
+			アプリ全体で使用する配列名は projProp_int とする。
+			各番地とその意味は次の定数群で規定される。
+		*/
+			#enum global IDX_PROJPROP_INT_readOnly=0
+			#enum global IDX_PROJPROP_INT_numParts
+			#enum global IDX_PROJPROP_INT_numWires
+			#enum global IDX_PROJPROP_INT_numCmtTags
+			#enum global IDX_PROJPROP_INT_numObjs
+			#enum global IDX_PROJPROP_INT_numHole_x
+			#enum global IDX_PROJPROP_INT_numHole_y
+			#enum global IDX_PROJPROP_INT_TERM
+		/* 文字列
+			アプリ全体で使用する配列名は projProp_str とする。
+			各番地とその意味は次の定数群で規定される。
+		*/
+			#enum global IDX_PROJPROP_STR_AUTHOR=0
+			#enum global IDX_PROJPROP_STR_TITLE
+			#enum global IDX_PROJPROP_STR_SUBTITLE
+			#enum global IDX_PROJPROP_STR_EXPLANATION
+			#enum global IDX_PROJPROP_STR_TERM
+	
+	/* 選択範囲 */
+		/* 配列インデックス
+			アプリ全体で使用する配列名は rectSel とする。
+			各番地とその意味は次の定数群で規定される。
+		*/
+		#enum global IDX_RECTSEL_xStart=0
+		#enum global IDX_RECTSEL_yStart
+		#enum global IDX_RECTSEL_xEnd
+		#enum global IDX_RECTSEL_yEnd
+		#enum global IDX_RECTSEL_xTopLeft
+		#enum global IDX_RECTSEL_yTopLeft
+		#enum global IDX_RECTSEL_xBottomRight
+		#enum global IDX_RECTSEL_yBottomRight
+		#enum global IDX_RECTSEL_dummy
+		/* 選択面
+			rectSel の IDX_RECTSEL_side メンバの値
+			組み合わせて使用可能
+		*/
+			#define global SIDE_RECT_SEL_FRONT	0b01
+			#define global SIDE_RECT_SEL_BACK	0b10
+	
+	/* 関数引数,戻り値 */
+		/* inspectBDfile */
+			#enum global IBDF_GOOD=0
+			#enum global IBDF_OLD_OK
+			#enum global IBDF_TOOOLD
+			#enum global IBDF_TOONEW
+			#enum global IBDF_UNKNOWNPMF
+			#enum global IBDF_UNKNOWNPM
+			#enum global IBDF_BROKEN
+		/* loadBDfile */
+			#enum global LBDD_OK
+			#enum global LBDD_BROKEN
+			#enum global LBDD_TOOOLD
+			#enum global LBDD_TOONEW
+			#enum global LBDD_UNKNOWNPMF
+			#enum global LBDD_UNKNOWNPM
+		/* rotateCircuitry */
+			#enum global RotCkt_P90=0
+			#enum global RotCkt_M90
+		/* isHoleOnLine */
+			#enum global IHOL_ENDPOINT=0
+			#enum global IHOL_NOENDPOINT
+		/* autoAnnotation */
+			#enum global OPTAUTOANN_closeGap=0
+			#enum global OPTAUTOANN_SORT_PX
+			#enum global OPTAUTOANN_SORT_MX
+			#enum global OPTAUTOANN_SORT_PY
+			#enum global OPTAUTOANN_SORT_MY
+	
+	/* 編集 */
+		/* 状態 */
+			#define global ES_IDLE			0b0000
+			#define global ES_SELRECT		0b0001
+			#define global ES_DRAG			0b0010
+			#define global ES_SCROLL		0b0100
+			#define global ES_UIBUSY		0b1000

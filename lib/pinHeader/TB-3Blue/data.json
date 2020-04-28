@@ -1,0 +1,7 @@
+{
+	"explanation":	"ターミナルブロック青。3ピン",
+	"numLeads":	3,
+	"rxLeads":	[2,4],
+	"ryLeads":	[0,0],
+	"posLeadInImg":	[10,22]
+}

@@ -1,0 +1,14 @@
+/*
+	HSPƒIƒvƒVƒ‡ƒ“
+*/
+
+/* cmpopt */
+	#cmpopt varinit TRUE
+
+/* bootopt */
+	#bootopt notimer FALSE
+
+/* packopt */
+	#packopt name appName
+	#packopt hide TRUE
+	#packopt icon "icon/appIcon.ico"

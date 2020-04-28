@@ -1,0 +1,1494 @@
+{
+	"fileInfo":	{
+		"appName":	"marmelo",
+		"mbdVer":	"2.0.0"
+	},
+	"proj":	{
+		"properties":	{
+			"author":	"motchy",
+			"title":	"テストファイル",
+			"subtitle":	"テストファイル",
+			"explanation":	"テスト用ファイル。",
+			"read-only":	false
+		},
+		"statistics":	{
+			"numHole":	[180, 30],
+			"numParts":	154,
+			"numWires":	6,
+			"numCmtTags":	3
+		},
+		"options":	{
+			"showBackWiresOnFrontWindow":	true,
+			"showFrontWiresOnBackWindow":	true,
+			"mirrorModeOnBackWindow":	true,
+			"showCmtTags":	true
+		},
+		"parts":	[{
+				"namePMF":	"C",
+				"namePmodel":	"CE-5",
+				"deg":	0,
+				"pos":	[2, 6],
+				"zOrder":	0,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"CE-6.3",
+				"deg":	0,
+				"pos":	[5, 3],
+				"zOrder":	1,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"CE-8",
+				"deg":	0,
+				"pos":	[4, 6],
+				"zOrder":	2,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"CE-10",
+				"deg":	0,
+				"pos":	[5, 12],
+				"zOrder":	3,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"MLCC-5.08",
+				"deg":	90,
+				"pos":	[7, 7],
+				"zOrder":	4,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"MLCC-2.54",
+				"deg":	0,
+				"pos":	[8, 5],
+				"zOrder":	5,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"CQ-2.54",
+				"deg":	0,
+				"pos":	[8, 3],
+				"zOrder":	6,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"C",
+				"namePmodel":	"CQ-5.08",
+				"deg":	0,
+				"pos":	[9, 6],
+				"zOrder":	7,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"glass-2.54",
+				"deg":	0,
+				"pos":	[0, 4],
+				"zOrder":	8,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"glass-5.08",
+				"deg":	0,
+				"pos":	[0, 11],
+				"zOrder":	9,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"glass-7.62",
+				"deg":	0,
+				"pos":	[0, 12],
+				"zOrder":	10,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"glass-10.16",
+				"deg":	0,
+				"pos":	[0, 13],
+				"zOrder":	11,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"resin-2.54",
+				"deg":	0,
+				"pos":	[0, 5],
+				"zOrder":	12,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"resin-5.08",
+				"deg":	0,
+				"pos":	[7, 0],
+				"zOrder":	13,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"resin-7.62",
+				"deg":	0,
+				"pos":	[7, 1],
+				"zOrder":	14,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"D",
+				"namePmodel":	"resin-10.16",
+				"deg":	0,
+				"pos":	[10, 0],
+				"zOrder":	15,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP8-300mil",
+				"deg":	0,
+				"pos":	[12, 4],
+				"zOrder":	16,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP14-300mil",
+				"deg":	0,
+				"pos":	[12, 8],
+				"zOrder":	17,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP16-300mil",
+				"deg":	0,
+				"pos":	[9, 12],
+				"zOrder":	18,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP18-300mil",
+				"deg":	0,
+				"pos":	[11, 20],
+				"zOrder":	19,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP20-300mil",
+				"deg":	0,
+				"pos":	[19, 8],
+				"zOrder":	20,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP22-300mil",
+				"deg":	0,
+				"pos":	[17, 12],
+				"zOrder":	21,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP22-400mil",
+				"deg":	0,
+				"pos":	[0, 19],
+				"zOrder":	22,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP24-300mil",
+				"deg":	0,
+				"pos":	[11, 16],
+				"zOrder":	23,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP24-400mil",
+				"deg":	0,
+				"pos":	[16, 4],
+				"zOrder":	24,
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP28-400mil",
+				"deg":	0,
+				"pos":	[28, 4],
+				"zOrder":	25,
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP28-300mil",
+				"deg":	0,
+				"pos":	[29, 8],
+				"zOrder":	26,
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"DIP40-600mil",
+				"deg":	0,
+				"pos":	[28, 15],
+				"zOrder":	27,
+				"annotation":	11,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"TO220",
+				"deg":	0,
+				"pos":	[24, 14],
+				"zOrder":	28,
+				"annotation":	12,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"isolated-TO220",
+				"deg":	0,
+				"pos":	[24, 16],
+				"zOrder":	29,
+				"annotation":	13,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP8-300mil",
+				"deg":	0,
+				"pos":	[20, 20],
+				"zOrder":	30,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP16-300mil",
+				"deg":	0,
+				"pos":	[31, 19],
+				"zOrder":	31,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP14-300mil",
+				"deg":	0,
+				"pos":	[24, 20],
+				"zOrder":	32,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP18-300mil",
+				"deg":	0,
+				"pos":	[39, 19],
+				"zOrder":	33,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP20-300mil",
+				"deg":	0,
+				"pos":	[48, 19],
+				"zOrder":	34,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP22-300mil",
+				"deg":	0,
+				"pos":	[58, 19],
+				"zOrder":	35,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP22-400mil",
+				"deg":	0,
+				"pos":	[42, 4],
+				"zOrder":	36,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP24-300mil",
+				"deg":	0,
+				"pos":	[43, 8],
+				"zOrder":	37,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP24-400mil",
+				"deg":	0,
+				"pos":	[53, 4],
+				"zOrder":	38,
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP28-300mil",
+				"deg":	0,
+				"pos":	[55, 8],
+				"zOrder":	39,
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP28-400mil",
+				"deg":	0,
+				"pos":	[65, 4],
+				"zOrder":	40,
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"ICsocket",
+				"namePmodel":	"DIP40-600mil",
+				"deg":	0,
+				"pos":	[48, 15],
+				"zOrder":	41,
+				"annotation":	11,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"5mm-Rd",
+				"deg":	0,
+				"pos":	[70, 6],
+				"zOrder":	42,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"5mm-Gr",
+				"deg":	0,
+				"pos":	[72, 6],
+				"zOrder":	43,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"5mm-Bl",
+				"deg":	0,
+				"pos":	[74, 6],
+				"zOrder":	44,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"3mm-Rd",
+				"deg":	0,
+				"pos":	[70, 8],
+				"zOrder":	45,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"3mm-Gr",
+				"deg":	0,
+				"pos":	[72, 8],
+				"zOrder":	46,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"3mm-Bl",
+				"deg":	0,
+				"pos":	[74, 8],
+				"zOrder":	47,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"5mm-Clr",
+				"deg":	0,
+				"pos":	[76, 6],
+				"zOrder":	48,
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"3mm-Clr",
+				"deg":	0,
+				"pos":	[76, 8],
+				"zOrder":	49,
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"array10-Clr",
+				"deg":	0,
+				"pos":	[79, 3],
+				"zOrder":	50,
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"array10-Rd",
+				"deg":	0,
+				"pos":	[79, 7],
+				"zOrder":	51,
+				"annotation":	11,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"array10-Gr",
+				"deg":	0,
+				"pos":	[79, 11],
+				"zOrder":	52,
+				"annotation":	12,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"array10-Bl",
+				"deg":	0,
+				"pos":	[79, 15],
+				"zOrder":	53,
+				"annotation":	13,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-1x1",
+				"deg":	0,
+				"pos":	[0, 0],
+				"zOrder":	54,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x1",
+				"deg":	90,
+				"pos":	[2, 3],
+				"zOrder":	55,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-1x3",
+				"deg":	0,
+				"pos":	[0, 20],
+				"zOrder":	56,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-1x4",
+				"deg":	0,
+				"pos":	[4, 20],
+				"zOrder":	57,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x5",
+				"deg":	0,
+				"pos":	[50, 21],
+				"zOrder":	58,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x7",
+				"deg":	0,
+				"pos":	[42, 21],
+				"zOrder":	59,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x10",
+				"deg":	0,
+				"pos":	[31, 21],
+				"zOrder":	60,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-1x1",
+				"deg":	0,
+				"pos":	[68, 13],
+				"zOrder":	61,
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-1x2",
+				"deg":	0,
+				"pos":	[70, 13],
+				"zOrder":	62,
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-1x3",
+				"deg":	0,
+				"pos":	[73, 13],
+				"zOrder":	63,
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-1x4",
+				"deg":	0,
+				"pos":	[69, 17],
+				"zOrder":	64,
+				"annotation":	11,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-1x5",
+				"deg":	0,
+				"pos":	[74, 17],
+				"zOrder":	65,
+				"annotation":	12,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-1x6",
+				"deg":	0,
+				"pos":	[69, 21],
+				"zOrder":	66,
+				"annotation":	13,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-2x1",
+				"deg":	0,
+				"pos":	[79, 21],
+				"zOrder":	67,
+				"annotation":	14,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-2x2",
+				"deg":	0,
+				"pos":	[81, 21],
+				"zOrder":	68,
+				"annotation":	15,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-2x3",
+				"deg":	0,
+				"pos":	[84, 21],
+				"zOrder":	69,
+				"annotation":	16,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-2x5",
+				"deg":	0,
+				"pos":	[88, 21],
+				"zOrder":	70,
+				"annotation":	17,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PHL-2x10",
+				"deg":	0,
+				"pos":	[89, 16],
+				"zOrder":	71,
+				"annotation":	18,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RD-2.54",
+				"deg":	0,
+				"pos":	[89, 0],
+				"zOrder":	72,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RD-5.08",
+				"deg":	0,
+				"pos":	[91, 0],
+				"zOrder":	73,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RD-7.62",
+				"deg":	0,
+				"pos":	[94, 0],
+				"zOrder":	74,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RD-10.16",
+				"deg":	0,
+				"pos":	[89, 1],
+				"zOrder":	75,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RD-12.7",
+				"deg":	0,
+				"pos":	[94, 1],
+				"zOrder":	76,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RN-2.54",
+				"deg":	0,
+				"pos":	[89, 2],
+				"zOrder":	77,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RN-5.08",
+				"deg":	0,
+				"pos":	[91, 2],
+				"zOrder":	78,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RN-7.62",
+				"deg":	0,
+				"pos":	[94, 2],
+				"zOrder":	79,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RN-10.16",
+				"deg":	0,
+				"pos":	[89, 3],
+				"zOrder":	80,
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RN-12.7",
+				"deg":	0,
+				"pos":	[94, 3],
+				"zOrder":	81,
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"L",
+				"namePmodel":	"micro-2.54",
+				"deg":	0,
+				"pos":	[89, 4],
+				"zOrder":	82,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"L",
+				"namePmodel":	"micro-7.62",
+				"deg":	0,
+				"pos":	[91, 4],
+				"zOrder":	83,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"L",
+				"namePmodel":	"micro-10.16",
+				"deg":	0,
+				"pos":	[95, 4],
+				"zOrder":	84,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"L",
+				"namePmodel":	"micro-12.7",
+				"deg":	0,
+				"pos":	[89, 5],
+				"zOrder":	85,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"SFR",
+				"deg":	0,
+				"pos":	[89, 8],
+				"zOrder":	86,
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"MTSFR-V",
+				"deg":	0,
+				"pos":	[93, 7],
+				"zOrder":	87,
+				"annotation":	11,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"MTSFR-H",
+				"deg":	0,
+				"pos":	[90, 9],
+				"zOrder":	88,
+				"annotation":	12,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"RSN",
+				"namePmodel":	"CERALOCK",
+				"deg":	0,
+				"pos":	[97, 8],
+				"zOrder":	89,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"RSN",
+				"namePmodel":	"XTAL",
+				"deg":	0,
+				"pos":	[94, 18],
+				"zOrder":	90,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"OSC",
+				"namePmodel":	"XTAL-TO92",
+				"deg":	0,
+				"pos":	[97, 6],
+				"zOrder":	91,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"OSC",
+				"namePmodel":	"XTAL-DIP8-4P-300mil",
+				"deg":	0,
+				"pos":	[100, 3],
+				"zOrder":	92,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"OSC",
+				"namePmodel":	"XTAL-DIP8-300mil",
+				"deg":	0,
+				"pos":	[100, 7],
+				"zOrder":	93,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"OSC",
+				"namePmodel":	"XTAL-DIP14-4P-300mil",
+				"deg":	0,
+				"pos":	[100, 11],
+				"zOrder":	94,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"OSC",
+				"namePmodel":	"XTAL-square",
+				"deg":	0,
+				"pos":	[104, 3],
+				"zOrder":	95,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"L",
+				"namePmodel":	"drum-5.08",
+				"deg":	0,
+				"pos":	[104, 5],
+				"zOrder":	96,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"L",
+				"namePmodel":	"AMZ",
+				"deg":	0,
+				"pos":	[107, 6],
+				"zOrder":	97,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-1x1",
+				"deg":	0,
+				"pos":	[98, 10],
+				"zOrder":	98,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-1x3",
+				"deg":	0,
+				"pos":	[99, 12],
+				"zOrder":	99,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-1x4",
+				"deg":	0,
+				"pos":	[99, 13],
+				"zOrder":	100,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-1x5",
+				"deg":	0,
+				"pos":	[99, 14],
+				"zOrder":	101,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-1x6",
+				"deg":	0,
+				"pos":	[99, 15],
+				"zOrder":	102,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-2x5",
+				"deg":	0,
+				"pos":	[104, 13],
+				"zOrder":	103,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-2x7",
+				"deg":	0,
+				"pos":	[99, 17],
+				"zOrder":	104,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-2x10",
+				"deg":	0,
+				"pos":	[99, 19],
+				"zOrder":	105,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-2x1",
+				"deg":	0,
+				"pos":	[106, 15],
+				"zOrder":	106,
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x13",
+				"deg":	0,
+				"pos":	[93, 21],
+				"zOrder":	107,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PS-2x13",
+				"deg":	0,
+				"pos":	[108, 1],
+				"zOrder":	108,
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PSL-1x6",
+				"deg":	0,
+				"pos":	[110, 5],
+				"zOrder":	109,
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PSL-2x5",
+				"deg":	0,
+				"pos":	[117, 6],
+				"zOrder":	110,
+				"annotation":	11,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PSL-2x10",
+				"deg":	0,
+				"pos":	[110, 11],
+				"zOrder":	111,
+				"annotation":	12,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinSocket",
+				"namePmodel":	"PSL-2x20",
+				"deg":	0,
+				"pos":	[110, 16],
+				"zOrder":	112,
+				"annotation":	13,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SNSR",
+				"namePmodel":	"cds-5.08",
+				"deg":	0,
+				"pos":	[2, 9],
+				"zOrder":	113,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"7seg-1",
+				"deg":	0,
+				"pos":	[122, 6],
+				"zOrder":	114,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LED",
+				"namePmodel":	"7seg-2",
+				"deg":	0,
+				"pos":	[128, 6],
+				"zOrder":	115,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"DIPSW-4P",
+				"deg":	0,
+				"pos":	[121, 10],
+				"zOrder":	116,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"DIPSW-2P",
+				"deg":	0,
+				"pos":	[126, 10],
+				"zOrder":	117,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"DIPSW-5P",
+				"deg":	0,
+				"pos":	[129, 10],
+				"zOrder":	118,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"DIPSW-8P",
+				"deg":	0,
+				"pos":	[110, 20],
+				"zOrder":	119,
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"DIPSW-6P",
+				"deg":	0,
+				"pos":	[119, 20],
+				"zOrder":	120,
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"TACTSW",
+				"deg":	0,
+				"pos":	[49, 13],
+				"zOrder":	121,
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"DIPRTSW-10stp",
+				"deg":	0,
+				"pos":	[62, 13],
+				"zOrder":	122,
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"SW",
+				"namePmodel":	"DIPRTSW-16stp",
+				"deg":	0,
+				"pos":	[126, 20],
+				"zOrder":	123,
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"sound",
+				"namePmodel":	"BZ-5.08",
+				"deg":	0,
+				"pos":	[131, 13],
+				"zOrder":	124,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LCD",
+				"namePmodel":	"LCD-2x16",
+				"deg":	0,
+				"pos":	[139, 9],
+				"zOrder":	125,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"USB",
+				"namePmodel":	"USB-A-host",
+				"deg":	0,
+				"pos":	[130, 20],
+				"zOrder":	126,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"USB",
+				"namePmodel":	"USB-mini-B-host",
+				"deg":	0,
+				"pos":	[136, 17],
+				"zOrder":	127,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"USB",
+				"namePmodel":	"USB-micro-B-host",
+				"deg":	0,
+				"pos":	[141, 17],
+				"zOrder":	128,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"RELAY",
+				"namePmodel":	"N1400HS3",
+				"deg":	0,
+				"pos":	[136, 21],
+				"zOrder":	129,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"arduinoNano",
+				"deg":	0,
+				"pos":	[0, 28],
+				"zOrder":	130,
+				"annotation":	14,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"ESP8266",
+				"deg":	0,
+				"pos":	[21, 28],
+				"zOrder":	131,
+				"annotation":	15,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP14-600mil",
+				"deg":	0,
+				"pos":	[36, 28],
+				"zOrder":	132,
+				"annotation":	16,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP16-500mil",
+				"deg":	0,
+				"pos":	[44, 27],
+				"zOrder":	133,
+				"annotation":	17,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP16-600mil",
+				"deg":	0,
+				"pos":	[53, 28],
+				"zOrder":	134,
+				"annotation":	18,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP18-600mil",
+				"deg":	0,
+				"pos":	[62, 28],
+				"zOrder":	135,
+				"annotation":	19,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP20-600mil",
+				"deg":	0,
+				"pos":	[72, 28],
+				"zOrder":	136,
+				"annotation":	20,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP24-600mil",
+				"deg":	0,
+				"pos":	[83, 28],
+				"zOrder":	137,
+				"annotation":	21,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP28-600mil",
+				"deg":	0,
+				"pos":	[96, 28],
+				"zOrder":	138,
+				"annotation":	22,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"IC",
+				"namePmodel":	"SOP2DIP8-300mil",
+				"deg":	0,
+				"pos":	[111, 28],
+				"zOrder":	139,
+				"annotation":	23,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RA4",
+				"deg":	0,
+				"pos":	[111, 22],
+				"zOrder":	140,
+				"annotation":	13,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RA8",
+				"deg":	0,
+				"pos":	[111, 23],
+				"zOrder":	141,
+				"annotation":	14,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"TB-2Blue",
+				"deg":	0,
+				"pos":	[121, 23],
+				"zOrder":	142,
+				"annotation":	19,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"TB-2Green",
+				"deg":	0,
+				"pos":	[125, 23],
+				"zOrder":	143,
+				"annotation":	20,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"TB-3Blue",
+				"deg":	0,
+				"pos":	[129, 23],
+				"zOrder":	144,
+				"annotation":	21,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"XH-2",
+				"deg":	0,
+				"pos":	[116, 25],
+				"zOrder":	145,
+				"annotation":	22,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"XH-3",
+				"deg":	0,
+				"pos":	[119, 25],
+				"zOrder":	146,
+				"annotation":	23,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"XH-4",
+				"deg":	0,
+				"pos":	[123, 25],
+				"zOrder":	147,
+				"annotation":	24,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"XH-5",
+				"deg":	0,
+				"pos":	[128, 25],
+				"zOrder":	148,
+				"annotation":	25,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LCD",
+				"namePmodel":	"OLED-128x32",
+				"deg":	0,
+				"pos":	[135, 24],
+				"zOrder":	149,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"LCD",
+				"namePmodel":	"OLED-128x64",
+				"deg":	0,
+				"pos":	[149, 14],
+				"zOrder":	150,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"Tr",
+				"namePmodel":	"TO-92",
+				"deg":	0,
+				"pos":	[150, 25],
+				"zOrder":	151,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"Tr",
+				"namePmodel":	"TO-92(Down)",
+				"deg":	0,
+				"pos":	[153, 26],
+				"zOrder":	152,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"Tr",
+				"namePmodel":	"TO-92(UP)",
+				"deg":	0,
+				"pos":	[150, 29],
+				"zOrder":	153,
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"wires":	[{
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[0, 0],
+				"pos2":	[2, 0],
+				"color":	"0xFF",
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[2, 3],
+				"pos2":	[2, 0],
+				"color":	"0xFF",
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[2, 0],
+				"pos2":	[7, 0],
+				"color":	"0xFF",
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[7, 1],
+				"pos2":	[3, 1],
+				"color":	"0xFF",
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[3, 3],
+				"pos2":	[3, 1],
+				"color":	"0xFF",
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"front",
+				"shielded":	true,
+				"pos":	[2, 6],
+				"pos2":	[0, 0],
+				"color":	"0xFF6464",
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"cmtTags":	[{
+				"side":	"front",
+				"xyb":	["55.000000", "20.000000"],
+				"bgColor":	"0xFFFFFF",
+				"chrColor":	"0x0",
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	"コメントタグ"
+			}, {
+				"side":	"front",
+				"xyb":	["63.000000", "20.000000"],
+				"bgColor":	"0x0",
+				"chrColor":	"0xF15454",
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	"色は自由"
+			}, {
+				"side":	"front",
+				"xyb":	["55.454500", "11.000000"],
+				"bgColor":	"0xFFFFFF",
+				"chrColor":	"0xFF",
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	"複数行も\r\nOK"
+			}]
+	}
+}

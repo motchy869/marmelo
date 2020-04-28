@@ -1,0 +1,31 @@
+/*
+	数学担当
+*/
+
+#module math
+	#defcfunc larger_int int a_,int b_	//大きい方(int)
+		if (a_>b_) {return a_} else {return b_}
+	
+	#defcfunc round double x_	//四捨五入
+		if (x_>0.0) {return int(x_+0.5)}
+		return int(x_-0.5)
+	
+	#defcfunc cosAngleBtwn2PlaneVectors double xv1_,double yv1_, double xv2_,double yv2_	//2つの平面ベクトルの成す角の余弦
+		l1=sqrt(xv1_*xv1_+yv1_*yv1_) : l2=sqrt(xv2_*xv2_+yv2_*yv2_)
+		if (l1*l2==0.0) {return 0.0}
+		return (l1*l1+l2*l2-powf(xv2_-xv1_,2)-powf(yv2_-yv1_,2))/(2.0*l1*l2)
+	
+	#defcfunc isLineSegmentOverlap_int int xs1_,int ys1_, int xe1_,int ye1_, int xs2_,int ys2_, int xe2_,int ye2_	//2線分の一致判定
+		if ((xs1_==xs2_)&&(ys1_==ys2_)&&(xe1_==xe2_)&&(ye1_==ye2_)) {return TRUE}
+		if ((xs1_==xe2_)&&(ys1_==ye2_)&&(xe1_==xs2_)&&(ye1_==ys2_)) {return TRUE}
+		return FALSE
+	
+	#defcfunc TFnum2str int x_	//TRUE,FALSEから"TRUE","FALSE"への変換
+		assertEx ((x_==TRUE)||(x_==FALSE))
+		if (x_==TRUE) {return "TRUE"} else {return "FALSE"}
+	
+	#defcfunc TFstr2num str x_	//"TRUE","FALSE"からTRUE,FALSEへの変換
+		assertEx ((x_=="TRUE")||(x_=="FALSE"))
+		if (x_=="TRUE") {return TRUE} else {return FALSE}
+		return
+#global

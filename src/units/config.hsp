@@ -1,0 +1,111 @@
+/*
+	設定担当
+*/
+
+#module config
+	hwnd_main@=0 : magDisp@=0 : hwnd_front@=0 : hwnd_back@=0
+	
+	#defcfunc local isValidWndstat int wndstat_	//ウィンドウ状態データの妥当性判断
+		if ((wndstat_!=WNDSTAT_NORMAL)&&(wndstat_!=WNDSTAT_MAXIMIZED)&&(wndstat_!=WNDSTAT_MINIMIZED)) {return FALSE}
+		return TRUE
+	
+	#deffunc loadDefaultConfig array cfgInt_	//デフォルト設定のロード
+		cfgInt_(IDCFG_INT_wndStatMain)=WNDSTAT_NORMAL
+		cfgInt_(IDCFG_INT_posxcMain)=100,100
+		cfgInt_(IDCFG_INT_sxcMain)=800,600
+		cfgInt_(IDCFG_INT_magDisp)=1
+		cfgInt_(IDCFG_INT_wndStatFront)=WNDSTAT_NORMAL
+		cfgInt_(IDCFG_INT_posxcFront)=109,131
+		cfgInt_(IDCFG_INT_sxcFront)=383,537
+		cfgInt_(IDCFG_INT_wndStatBack)=WNDSTAT_NORMAL
+		cfgInt_(IDCFG_INT_posxcBack)=508,131
+		cfgInt_(IDCFG_INT_sxcBack)=383,537
+		return
+	
+	#deffunc loadConfigFile array cfgInt_, str path_, local x	//設定ファイルからロード
+		/*
+			(out) cfgInt_	: 設定配列
+			(in)  path_	: ファイルパス
+	
+			[stat]
+				(0,1,2)=(成功,ファイル無し,ファイル異常)
+
+			方針: 設定ファイルの致命的な破損以外は無難に対応する
+		*/		
+		//ディスクからロード
+		exist path_ : if (strsize==-1) {return 1}
+		file="" : notesel file : noteload path_
+		//解析
+		jsonnkf@ "s", "s"
+		json = jsonOpen_f(file)
+		json_UI = jsonGetObj_f("UI", json) : if (json_UI == 0) {return 2}
+		json_Window = jsonGetObj_f("Window", json_UI) : if (json_Window == 0) {return 2}
+		json_main = jsonGetObj_f("main", json_Window) : if (json_main == 0) {return 2}
+			cfgInt_(IDCFG_INT_wndStatMain) = jsonGeti_f("wndstat", json_main, WNDSTAT_NORMAL)
+			if (jsonGetIntArray@(x, jsonGetObj_f("posClient", json_main)) != 2) {return 2} : cfgInt_(IDCFG_INT_posxcMain) = x(0), x(1)
+			if (jsonGetIntArray@(x, jsonGetObj_f("sizeClient", json_main)) != 2) {return 2} : cfgInt_(IDCFG_INT_sxcMain) = x(0), x(1)
+		json_fb = jsonGetObj_f("frontAndBack", json_Window) : if (json_fb == 0) {return 2}
+			x = jsonGeti_f("mag", json_fb, -1) : if ((x!=1)&&(x!=2)&&(x!=4)) {return 2} : cfgInt_(IDCFG_INT_magDisp) = x
+			json_front = jsonGetObj_f("front", json_fb) : if (json_front == 0) {return 2}
+				cfgInt_(IDCFG_INT_wndStatFront) = jsonGeti_f("wndstat", json_front, WNDSTAT_NORMAL)
+				if (jsonGetIntArray@(x, jsonGetObj_f("posClient", json_front)) != 2) {return 2} : cfgInt_(IDCFG_INT_posxcFront) = x(0), x(1)
+				if (jsonGetIntArray@(x, jsonGetObj_f("sizeClient", json_front)) != 2) {return 2} : cfgInt_(IDCFG_INT_sxcFront) = x(0), x(1)
+			json_back = jsonGetObj_f("back", json_fb) : if (json_back == 0) {return 2}
+				cfgInt_(IDCFG_INT_wndStatBack) = jsonGeti_f("wndstat", json_back, WNDSTAT_NORMAL)
+				if (jsonGetIntArray@(x, jsonGetObj_f("posClient", json_back)) != 2) {return 2} : cfgInt_(IDCFG_INT_posxcBack) = x(0), x(1)
+				if (jsonGetIntArray@(x, jsonGetObj_f("sizeClient", json_back)) != 2) {return 2} : cfgInt_(IDCFG_INT_sxcBack) = x(0), x(1)
+		jsonclose@
+		return 0
+	
+	#deffunc makeCfgDat array cfgInt_	//現在の状況から設定データを作る
+		/*
+			(out) cfgInt_	: 設定配列
+		*/
+		dim cfgInt_,MAX_IDCFG_INT : dim crect,4
+		cfgInt_(IDCFG_INT_wndStatMain)=getWndStat(hwnd_main@)
+		GetClientRect hwnd_main@,crect : ClientToScreen hwnd_main@,crect
+		cfgInt_(IDCFG_INT_posxcMain)=crect(0),crect(1) : cfgInt_(IDCFG_INT_sxcMain)=crect(2),crect(3)
+		cfgInt_(IDCFG_INT_magDisp)=magDisp@
+		cfgInt_(IDCFG_INT_wndStatFront)=getWndStat(hwnd_front@)
+		GetClientRect hwnd_front@,crect : ClientToScreen hwnd_front@,crect
+		cfgInt_(IDCFG_INT_posxcFront)=crect(0),crect(1) : cfgInt_(IDCFG_INT_sxcFront)=crect(2),crect(3)
+		cfgInt_(IDCFG_INT_wndStatBack)=getWndStat(hwnd_back@)
+		GetClientRect hwnd_back@,crect : ClientToScreen hwnd_back@,crect
+		cfgInt_(IDCFG_INT_posxcBack)=crect(0),crect(1) : cfgInt_(IDCFG_INT_sxcBack)=crect(2),crect(3)
+		return
+	
+	#deffunc local makeNiniConfig array cfgInt_, var file_	//設定ファイルテキストを作成
+		/*
+			(in)  cfgInt_	: 設定配列
+			(out) file_	: 設定のJSON形式テキスト
+		*/
+		jsonnkf@ "s", "s"
+		file = "{}" : json = jsonOpen_f(file)
+		json_UI = jsonNewObj_f(json, "UI")
+			json_Window = jsonNewObj_f(json_UI, "Window")
+				json_main = jsonNewObj_f(json_Window, "main")
+					jsonputi@ json_main, "wndstat", cfgInt_(IDCFG_INT_wndStatMain)
+					json_posCliient = jsonNewArray(json_main, "posClient") : jsonputi@ json_posCliient, "", cfgInt_(IDCFG_INT_posxcMain) : jsonputi@ json_posCliient, "", cfgInt_(IDCFG_INT_posycMain)
+					json_sizeClient = jsonNewArray(json_main, "sizeClient") : jsonputi@ json_sizeClient, "", cfgInt_(IDCFG_INT_sxcMain) : jsonputi@ json_sizeClient, "", cfgInt_(IDCFG_INT_sycMain)
+				json_fb = jsonNewObj_f(json_Window, "frontAndBack")
+					jsonputi@ json_fb, "mag", cfgInt_(IDCFG_INT_magDisp)
+					json_front = jsonNewObj_f(json_fb, "front")
+						jsonputi@ json_front, "wndstat", cfgInt_(IDCFG_INT_wndStatFront)
+						json_posCliient = jsonNewArray(json_front, "posClient") : jsonputi@ json_posCliient, "", cfgInt_(IDCFG_INT_posxcFront) : jsonputi@ json_posCliient, "", cfgInt_(IDCFG_INT_posycFront)
+						json_sizeClient = jsonNewArray(json_front, "sizeClient") : jsonputi@ json_sizeClient, "", cfgInt_(IDCFG_INT_sxcFront) : jsonputi@ json_sizeClient, "", cfgInt_(IDCFG_INT_sycFront)
+					json_back = jsonNewObj_f(json_fb, "back")
+						jsonputi@ json_back, "wndstat", cfgInt_(IDCFG_INT_wndStatBack)
+						json_posCliient = jsonNewArray(json_back, "posClient") : jsonputi@ json_posCliient, "", cfgInt_(IDCFG_INT_posxcBack) : jsonputi@ json_posCliient, "", cfgInt_(IDCFG_INT_posycBack)
+						json_sizeClient = jsonNewArray(json_back, "sizeClient") : jsonputi@ json_sizeClient, "", cfgInt_(IDCFG_INT_sxcBack) : jsonputi@ json_sizeClient, "", cfgInt_(IDCFG_INT_sycBack)
+		jsonout@ file, json
+		jsonclose@
+		return
+	
+	#deffunc saveConfigFile array cfgInt_	//設定ファイルの保存
+		/*
+			(in)  cfgInt_	: 設定配列
+		*/
+		file="" : makeNiniConfig cfgInt_, file
+		notesel file : notesave dir_bin@+"\\config\\config.json"
+		return
+#global

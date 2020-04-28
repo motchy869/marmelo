@@ -1,0 +1,165 @@
+{
+	"fileInfo":	{
+		"appName":	"marmelo",
+		"mbdVer":	"2.0.0"
+	},
+	"proj":	{
+		"properties":	{
+			"author":	"",
+			"title":	"",
+			"subtitle":	"",
+			"explanation":	"",
+			"read-only":	false
+		},
+		"statistics":	{
+			"numHole":	[6, 6],
+			"numParts":	4,
+			"numWires":	11,
+			"numCmtTags":	0
+		},
+		"options":	{
+			"showBackWiresOnFrontWindow":	true,
+			"showFrontWiresOnBackWindow":	true,
+			"mirrorModeOnBackWindow":	true,
+			"showCmtTags":	true
+		},
+		"parts":	[{
+				"namePMF":	"IC",
+				"namePmodel":	"DIP8-300mil",
+				"deg":	0,
+				"pos":	[0, 3],
+				"zOrder":	0,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x1",
+				"deg":	0,
+				"pos":	[5, 2],
+				"zOrder":	1,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"R",
+				"namePmodel":	"RD-2.54",
+				"deg":	0,
+				"pos":	[0, 4],
+				"zOrder":	2,
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"namePMF":	"pinHeader",
+				"namePmodel":	"PH-2x1",
+				"deg":	0,
+				"pos":	[5, 5],
+				"zOrder":	3,
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"wires":	[{
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[5, 1],
+				"pos2":	[4, 1],
+				"color":	"0xFF",
+				"annotation":	0,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[1, 1],
+				"pos2":	[0, 1],
+				"color":	"0xFF",
+				"annotation":	1,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[3, 3],
+				"pos2":	[5, 2],
+				"color":	"0xFF",
+				"annotation":	2,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[2, 3],
+				"pos2":	[3, 3],
+				"color":	"0xFF",
+				"annotation":	3,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[1, 4],
+				"pos2":	[1, 3],
+				"color":	"0xFF",
+				"annotation":	4,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[1, 1],
+				"pos2":	[4, 1],
+				"color":	"0xFF",
+				"annotation":	6,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[0, 1],
+				"pos2":	[0, 0],
+				"color":	"0xFF",
+				"annotation":	7,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[0, 4],
+				"pos2":	[0, 3],
+				"color":	"0xFF",
+				"annotation":	5,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[1, 4],
+				"pos2":	[5, 4],
+				"color":	"0xFF",
+				"annotation":	8,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[0, 4],
+				"pos2":	[0, 5],
+				"color":	"0xFF",
+				"annotation":	9,
+				"vals":	["", "", ""],
+				"comment":	""
+			}, {
+				"side":	"back",
+				"shielded":	false,
+				"pos":	[0, 5],
+				"pos2":	[5, 5],
+				"color":	"0xFF",
+				"annotation":	10,
+				"vals":	["", "", ""],
+				"comment":	""
+			}],
+		"cmtTags":	[]
+	}
+}
