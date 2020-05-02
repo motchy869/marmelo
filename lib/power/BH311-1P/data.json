@@ -1,0 +1,7 @@
+{
+	"explanation":	"電池ボックス 単3用",
+	"numLeads":	2,
+	"rxLeads":	[20],
+	"ryLeads":	[0],
+	"posLeadInImg":	[13,36]
+}

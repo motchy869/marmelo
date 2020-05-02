@@ -1,0 +1,7 @@
+{
+	"explanation":	"DC-DCコンバーター CC6-Eシリーズ",
+	"numLeads":	11,
+	"rxLeads":	[0,0,9,9,9,9,1,1,8,8],
+	"ryLeads":	[4,6,6,4,2,0,-1,7,7,-1],
+	"posLeadInImg":	[1,12]
+}

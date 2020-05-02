@@ -1,0 +1,7 @@
+{
+	"explanation":	"DC-DCコンバーター CCGシリーズ",
+	"numLeads":	6,
+	"rxLeads":	[0,0,8,8,8],
+	"ryLeads":	[3,5,8,4,0],
+	"posLeadInImg":	[12,12]
+}
