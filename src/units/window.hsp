@@ -161,15 +161,26 @@
 		return
 #global
 
-#module window_lside	//左サイドウィンドウ操作
-	#deffunc openLsideWnd int sxc_	//左サイドウィンドウを指定された幅に展開する
+/* 左サイドウィンドウ操作
+ *
+ * wid_open: 開かれている左サイドウィンドウ(新規作成, プロパティ設定, ...)のウィンドウID。-1なら何も開かれていない。
+ */
+#module window_lside
+	#deffunc local init
+		LSideWid_open = -1
+		return
+	#defcfunc getOpenedLSideWndId
+		return LSideWid_open
+	#deffunc openLsideWnd int sxc_, int sideWndId_	// 左サイドウィンドウを指定された幅に展開する
 		assertEx ((sxc_>=MIN_SXC_LSIDE)&&(sxc_<=SX_LSIDE))
 		sxc_lside@=sxc_ : SetWindowPos hwnd_lside@, DONTCARE_INT, 0,0, sxc_lside@,syc_lside@, SWP_NOMOVE|SWP_NOZORDER : gosub *int_main_WM_SIZE@window_int
 		isLsideWindowOpen@=TRUE
+		LSideWid_open = sideWndId_
 		return
-	#deffunc closeLsideWnd	//左サイドウィンドウを閉じる
+	#deffunc closeLsideWnd	// 左サイドウィンドウを閉じる
 		sxc_lside@=MIN_SXC_LSIDE@ : SetWindowPos hwnd_lside@, DONTCARE_INT, DONTCARE_INT,DONTCARE_INT, sxc_lside@,syc_lside@, SWP_NOMOVE|SWP_NOZORDER : gosub *int_main_WM_SIZE@window_int
 		isLsideWindowOpen@=FALSE
+		LSideWid_open = -1
 		return
 #global
 
@@ -289,7 +300,7 @@ netexec@ : netgetv@	//とにかく書かなければ何故か認識しない
 	
 	*int_onkey
 		getkey key_ctrl,17 : if (key_ctrl) {kbdShortCut : return}	//ctrlが押されている場合はここで処理する
-		/* ctrlが押されていない場合はカードル直下のウィンドウに投げる */
+		/* ctrlが押されていない場合はカーソル直下のウィンドウに投げる */
 			hwnd_underMouse=WindowFromPoint(ginfo_mx,ginfo_my)
 			switch hwnd_underMouse
 				case hwnd_front@ : gosub *int_front_WM_KEYDOWN@window_int : swbreak
@@ -341,7 +352,7 @@ netexec@ : netgetv@	//とにかく書かなければ何故か認識しない
 				/* 表示 */
 					case IDM_showCmtTags : chOpt_showCmtTags : swbreak
 				/* オブジェクト */
-					case IDM_addPart : int_addPart : swbreak
+					case IDM_addPart : int_OpenPartAdditionSideWnd : swbreak
 					case IDM_addCmtTag : int_addCmtTag : swbreak
 					case IDM_slideObjs : int_slideObjs : swbreak
 					case IDM_autoAnn : int_autoAnn : swbreak

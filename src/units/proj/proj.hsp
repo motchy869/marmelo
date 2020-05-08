@@ -118,7 +118,7 @@
 				}
 				unloadProj
 			}
-			gsel WID_NEWPROJ,1 : openlsideWnd SX_NEWPROJ : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			gsel WID_NEWPROJ,1 : openlsideWnd SX_NEWPROJ, WID_NEWPROJ : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 			return
 			*int_button_newproj_do
 				nx=int(bufInput@(IDINPUT_x_numHole)) : ny=int(bufInput@(IDINPUT_y_numHole))
@@ -200,7 +200,7 @@
 			sendmsg hwndInput@(IDINPUT_subtitle_projProp), WM_SETTEXT, 0, varptr(projProp_str@(IDX_PROJPROP_STR_SUBTITLE))
 			sendmsg hwndMesbox@(IDMESBOX_explanation_projProp), WM_SETTEXT, 0, varptr(projProp_str@(IDX_PROJPROP_STR_EXPLANATION))
 			sendmsg hwndChkBox@(IDCHKBOX_readOnly_projProp), BM_SETCHECK, projProp_int@(IDX_PROJPROP_INT_readOnly), 0
-		gsel WID_SETPROJPROP,1 : openlsideWnd SX_SETPROJPROP : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		gsel WID_SETPROJPROP,1 : openlsideWnd SX_SETPROJPROP, WID_SETPROJPROP : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 		return
 	*int_button_update
 		udrd_progress
@@ -565,7 +565,7 @@
 			assertEx (isReadOnlyCurProj==FALSE)
 			tmp=str(numHole_xCurProj),str(numHole_yCurProj)
 			sendmsg hwndInput@(IDINPUT_x_numHole), WM_SETTEXT, 0, varptr(tmp(0)) : sendmsg hwndInput@(IDINPUT_y_numHole), WM_SETTEXT, 0, varptr(tmp(1))
-			gsel WID_CHNUMHOLES,1 : openlsideWnd SX_CHNUMHOLES : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			gsel WID_CHNUMHOLES,1 : openlsideWnd SX_CHNUMHOLES, WID_CHNUMHOLES : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 			return
 		*int_button_chnumholes_do
 			gsel WID_MAIN	//ダイアログのため
@@ -626,7 +626,7 @@
 		#deffunc int_slideObjs
 			assertEx (flg_projLoaded@)
 			assertEx (isReadOnlyCurProj==FALSE)
-			gsel WID_SLIDEOBJS,1 : openlsideWnd SX_SLIDEOBJS : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			gsel WID_SLIDEOBJS,1 : openlsideWnd SX_SLIDEOBJS, WID_SLIDEOBJS : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 			return
 		*int_button_slideObjs_do
 			dx=int(bufInput@(IDINPUT_x_slideObjs)) : dy=int(bufInput@(IDINPUT_y_slideObjs))
@@ -918,7 +918,7 @@
 		#deffunc int_autoAnn
 			assertEx (flg_projLoaded@)
 			assertEx (isReadOnlyCurProj==FALSE)
-			gsel WID_AUTOANN,1 : openlsideWnd SX_AUTOANN : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			gsel WID_AUTOANN,1 : openlsideWnd SX_AUTOANN, WID_AUTOANN : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 			return
 		*int_button_autoAnn_do
 			udrd_progress : autoAnnotation statCombox@(IDCOMBOX_autoAnn)
@@ -937,7 +937,7 @@
 		#deffunc int_mergeBoard
 			assertEx (flg_projLoaded@)
 			assertEx (isReadOnlyCurProj==FALSE)
-			gsel WID_MERGE_BOARD,1 : openlsideWnd SX_MERGE_BOARD : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+			gsel WID_MERGE_BOARD,1 : openlsideWnd SX_MERGE_BOARD, WID_MERGE_BOARD : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 			return
 		*int_button_cancel_mergeBoard
 			closeLsideWnd : gsel WID_MERGE_BOARD,-1 : stat_edit@&=(BITINV(ES_UIBUSY)) : arrangeMenuBarStat

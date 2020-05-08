@@ -4,19 +4,19 @@
 			"main":	{
 				"wndstat":	0,
 				"posClient":	[146, 162],
-				"sizeClient":	[791, 548]
+				"sizeClient":	[984, 701]
 			},
 			"frontAndBack":	{
 				"mag":	1,
 				"front":	{
 					"wndstat":	0,
 					"posClient":	[155, 193],
-					"sizeClient":	[379, 485]
+					"sizeClient":	[475, 638]
 				},
 				"back":	{
 					"wndstat":	0,
-					"posClient":	[550, 193],
-					"sizeClient":	[379, 485]
+					"posClient":	[646, 193],
+					"sizeClient":	[475, 638]
 				}
 			}
 		}

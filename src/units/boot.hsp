@@ -246,6 +246,7 @@ dir_bin=dir_cur	//実行ファイルのあるディレクトリ
 		SetParent hwnd,hwnd_main
 		gsel WID_LSIDE,1
 		oncmd gosub *int_wnd_lside@window_int, WM_COMMAND	//こうしないと onkey の割り込み先ウィンドウIDが ginfo_intid に反映されない
+		init@window_lside
 	/* 基板ウィンドウ */
 		bgscr WID_BOARD, ginfo_dispx-MIN_SXC_LSIDE, ginfo_dispy, 2, 0,0, sxc_main-sxc_lside,syc_main-sy_statBar : sxc_board = ginfo_winx : syc_board = ginfo_winy
 		hwnd_board = hwnd

@@ -12,6 +12,7 @@
 	#deffunc local getKeys array keys_	//よく使うキーのON/OFFをまとめて調べる
 		#enum idKey_SHIFT=0
 		#enum idKey_ESC
+		#enum idKey_SPACE
 		#enum idKey_A
 		#enum idKey_C
 		#enum idKey_D
@@ -26,7 +27,7 @@
 		#enum idKey_W
 		#enum idKey_dummy
 		dim keys_,idKey_dummy
-		getkey keys_(idKey_SHIFT),16 : getkey keys_(idKey_ESC),27
+		getkey keys_(idKey_SHIFT),16 : getkey keys_(idKey_ESC),27 : getkey keys_(idKey_SPACE),32
 		getkey keys_(idKey_A),65 : getkey keys_(idKey_C),67 : getkey keys_(idKey_D),68 : getkey keys_(idKey_G),71 : getkey keys_(idKey_F),70 : getkey keys_(idKey_J),74
 		getkey keys_(idKey_M),77 : getkey keys_(idKey_R),82 : getkey keys_(idKey_S),83 : getkey keys_(idKey_T),84 : getkey keys_(idKey_V),86 : getkey keys_(idKey_W),87
 		return
@@ -290,7 +291,7 @@
 					if (idObj!=-1) {
 						if (keys(idKey_C)) {if (isPart(idObj)) {copyPart idObj, mxb,myb} : return}	//部品のコピー
 						if (keys(idKey_D)) {
-							if ((keys(idKey_SHIFT)=TRUE)&&isWire(idObj)) {delSinglePath idObj : return	//単一路の削除
+							if ((TRUE==keys(idKey_SHIFT))&&isWire(idObj)) {delSinglePath idObj : return	//単一路の削除
 							} else {deleteObj idObj : return}	//オブジェクトの削除
 						}
 						if (keys(idKey_F)) {if (isPart(idObj)) {bringPartToFront idObj} : return}	//部品を最前面に移動
@@ -299,10 +300,14 @@
 					}
 					if (keys(idKey_W)) {if (isPointOnBoard(mxb,myb)) {startWire side_, FALSE, mxb,myb} : return}	//裸線開始
 					if (keys(idKey_J)) {if (isPointOnBoard(mxb,myb)) {startWire side_, TRUE, mxb,myb} : return}	//被覆線開始
+					if (keys(idKey_SPACE) && (getOpenedLSideWndId() == WID_ADDPART)) { // (2020/5/8) Spaceキーによる部品追加を実装
+						gosub *int_button_addPart_add@edit_uiAddPart
+						return
+					}
 					if (COVER(ES_IDLE@, stat_edit@)) {
-						if (keys(idKey_A)) {int_addPart : return}	//部品の追加
-						if (keys(idKey_T)) {int_addCmtTag side_ : return}	//コメントタグの追加
-						if (keys(idKey_V)) {if (idObj!=-1) {int_addComment idObj : return}}	//コメント等追加
+						if (keys(idKey_A)) {int_OpenPartAdditionSideWnd : return}	//部品の追加画面を開く
+						if (keys(idKey_T)) {int_addCmtTag side_ : return}	//コメントタグの追加〃
+						if (keys(idKey_V)) {if (idObj!=-1) {int_addComment idObj : return}}	//コメント等追加〃
 					}
 				}
 				return
@@ -577,7 +582,7 @@
 #module edit_uiAddPart	//部品の追加処理
 	sxImgs=0 : syImgs=0 : srcxImgs=0 : srcyImgs=0 : xReqHoles=0 : yReqHoles=0 : rx_FL2TLL=0 : ry_FL2TLL=0 : xhtlv=0 : yhtlv=0 : idSA_PREVIEW_ADDPART=0	//未初期化変数警告回避
 
-	#deffunc int_addPart
+	#deffunc int_OpenPartAdditionSideWnd
 		assertEx (flg_projLoaded@)
 		assertEx (isReadOnlyCurProj==FALSE)
 		if (count_open_wndAddPart@==0) {	//初回準備
@@ -591,7 +596,7 @@
 		} else {
 			sendmsg hwnd_addPart@, WM_COMMAND, LBN_SELCHANGE<<16, hwndListbox@(IDLISTBOX_addPart)	//プレビュー表示処理に点火
 		}
-		gsel WID_ADDPART,1 : openLsideWnd@ SX_ADDPART@ : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		gsel WID_ADDPART,1 : openLsideWnd@ SX_ADDPART@, WID_ADDPART : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 		count_open_wndAddPart@++
 		return
 	
@@ -665,7 +670,7 @@
 		if (bufInput@(IDINPUT_addCmtTag_bgColor)=="") {buf=strf("0x%X",defltBGClrCmtTag) : sendmsg hwndInput@(IDINPUT_addCmtTag_bgColor), WM_SETTEXT, 0, varptr(buf)}
 		if (bufInput@(IDINPUT_addCmtTag_chrColor)=="") {buf=strf("0x%X",defltChrClrCmtTag) : sendmsg hwndInput@(IDINPUT_addCmtTag_chrColor), WM_SETTEXT, 0, varptr(buf)}
 		sendmsg hwndCombox@(IDCOMBOX_addCmtTag), CB_SETCURSEL, (sideIntent_==SIDE_BACK),0
-		gsel WID_ADDCMTTAG,1 : openlsideWnd SX_ADDCMTTAG : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		gsel WID_ADDCMTTAG,1 : openlsideWnd SX_ADDCMTTAG, WID_ADDCMTTAG : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 		return
 	
 	*int_button_wndAddCmtTag_browseColor
@@ -706,7 +711,7 @@
 			getVals@OBJ OBJs@(idObj), vals : comment=getComment@OBJ(OBJs@(idObj))
 			repeat 3 : sendmsg hwndInput@(IDINPUT_comment_val1+cnt), WM_SETTEXT, 0, varptr(vals(cnt)) : loop
 			sendmsg hwndMesbox@(IDMESBOX_comment), WM_SETTEXT, 0, varptr(comment)
-		gsel WID_COMMENT,1 : openlsideWnd SX_COMMENT : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		gsel WID_COMMENT,1 : openlsideWnd SX_COMMENT, WID_COMMENT : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 		return
 	*int_button_addComment_chg
 		if (existObj(idObj)==FALSE) {gsel WID_MAIN : dialog "その部品はもう存在しません",1,appName : gosub *int_button_addComment_cancel : return}
@@ -731,7 +736,7 @@
 		//入力ボックスの前回の値を維持する方が使いやすいとの要望により、無効に。
 		//repeat 3 : buf=str((wireColor>>(8*(2-cnt)))&0xFF) : sendmsg hwndInput@(IDINPUT_chWireColor_R+cnt), WM_SETTEXT, 0, varptr(buf) : loop
 
-		gsel WID_CHWIRECOLOR,1 : openlsideWnd SX_CHWIRECOLOR : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
+		gsel WID_CHWIRECOLOR,1 : openlsideWnd SX_CHWIRECOLOR, WID_CHWIRECOLOR : stat_edit@|=ES_UIBUSY : arrangeMenuBarStat
 		return
 	*int_button_openColorDlg
 		gsel WID_MAIN : dialog "",33
