@@ -1,0 +1,7 @@
+{
+	"explanation":	"IC。API2520互換配列 (昔のディスクリートオペアンプ)",
+	"numLeads":	7,
+	"rxLeads":	[0,8,8,8,8,8],
+	"ryLeads":	[2,5,3,1,-1,-3],
+	"posLeadInImg":	[16,49]
+}

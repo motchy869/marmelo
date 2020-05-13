@@ -1,0 +1,7 @@
+{
+	"explanation":	"DC-DCコンバーター MIWI06シリーズ",
+	"numLeads":	8,
+	"rxLeads":	[1,7,9,9,7,1,0],
+	"ryLeads":	[0,0,0,-6,-6,-6,-6],
+	"posLeadInImg":	[20,77]
+}

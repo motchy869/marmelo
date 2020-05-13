@@ -1,0 +1,7 @@
+{
+	"explanation":	"DC-DCコンバーター MAU101/102/103/104/105/111/112/113/114/115",
+	"numLeads":	4,
+	"rxLeads":	[1,3,5],
+	"ryLeads":	[0,0,0],
+	"posLeadInImg":	[9,6]
+}

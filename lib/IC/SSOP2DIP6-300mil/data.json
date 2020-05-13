@@ -1,0 +1,7 @@
+{
+	"explanation":	"ICBSSOP2DIP6•ÏŠ·Šî”ÂB300mil•B",
+	"numLeads":	6,
+	"rxLeads":	[1, 2, 2, 1, 0],
+	"ryLeads":	[0, 0, -3, -3, -3],
+	"posLeadInImg":	[6,39]
+}

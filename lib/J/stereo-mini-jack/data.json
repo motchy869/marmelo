@@ -1,0 +1,7 @@
+{
+	"explanation":	"ステレオミニジャック",
+	"numLeads":	5,
+	"rxLeads":	[2,2,2,2],
+	"ryLeads":	[2,1,-1,-2],
+	"posLeadInImg":	[27,26]
+}
