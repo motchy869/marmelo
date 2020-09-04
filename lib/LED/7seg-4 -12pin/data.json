@@ -1,0 +1,7 @@
+{
+	"explanation":	"7セグメントLED表示器4文字 12pin model",
+	"numLeads":	12,
+	"rxLeads":	[1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 0],
+	"ryLeads":	[0, 0, 0, 0, 0, -6, -6, -6, -6, -6, -6],
+	"posLeadInImg":	[70, 71]
+}
