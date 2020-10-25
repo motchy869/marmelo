@@ -203,7 +203,7 @@
 			#enum global IBDF_UNKNOWNPM
 			#enum global IBDF_BROKEN
 		/* loadBDfile */
-			#enum global LBDD_OK
+			#enum global LBDD_OK=0
 			#enum global LBDD_BROKEN
 			#enum global LBDD_TOOOLD
 			#enum global LBDD_TOONEW
