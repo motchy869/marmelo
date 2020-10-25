@@ -261,23 +261,23 @@ netexec@ : netgetv@	//とにかく書かなければ何故か認識しない
 					trash = KillTimer@(hwnd_main@, IDTIMER_CHKUPDATE)
 					if (res == 1) {
 						html = "" : netgetv@ html
-						
+
 						#if 0 // (2020/4/28) 更新確認用ファイルをGithubに設置。処理を簡素化。
-						s = "<div class=\"invisible\">latest-version="
-						l = strlen(s)
-						a = instr(html, 0, s)
-						if (a == -1) {
-							dialog "更新情報の取得に失敗しました。\n恐らく作者がWebページの記述をミスっています。\n本アプリは引き続きご使用になれますが、作者に不具合を知らせてくださると助かります。\nWebページにてコメント投稿しますか？", 3, "エラー"
-							if (stat == 6) {exec "http://motchy99.blog.fc2.com/blog-entry-73.html", 16}
-							return
-						}
-						b = instr(html, a, "</div>")
-						LATEST_VER_STR = strmid(html, a+l, b-l)
-						buf = "" : split LATEST_VER_STR, ".", buf : LATEST_VER = serializeVer(int(buf(0)),int(buf(1)),int(buf(2)))
+							s = "<div class=\"invisible\">latest-version="
+							l = strlen(s)
+							a = instr(html, 0, s)
+							if (a == -1) {
+								dialog "更新情報の取得に失敗しました。\n恐らく作者がWebページの記述をミスっています。\n本アプリは引き続きご使用になれますが、作者に不具合を知らせてくださると助かります。\nWebページにてコメント投稿しますか？", 3, "エラー"
+								if (stat == 6) {exec "http://motchy99.blog.fc2.com/blog-entry-73.html", 16}
+								return
+							}
+							b = instr(html, a, "</div>")
+							LATEST_VER_STR = strmid(html, a+l, b-l)
+							buf = "" : split LATEST_VER_STR, ".", buf : LATEST_VER = serializeVer(int(buf(0)),int(buf(1)),int(buf(2)))
 						#else
-						buf = "" : split html, ".", buf : LATEST_VER = serializeVer(int(buf(0)),int(buf(1)),int(buf(2)))
+							buf = "" : split html, ".", buf : LATEST_VER = serializeVer(int(buf(0)),int(buf(1)),int(buf(2)))
 						#endif
-						
+
 						if (LATEST_VER > APPVER) {
 							if (IsWindowVisible(hwnd_splash@)) {gsel WID_SPLASH} else {gsel WID_MAIN}
 							dialog "より新しいバージョンが利用できます。\nダウンロードページを開きますか？\n\n使用中 : ver " + APPVER_STR@ + "\n最新版 : ver " + html, 2, "marmelo の更新"
