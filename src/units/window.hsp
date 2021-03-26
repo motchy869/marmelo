@@ -100,11 +100,11 @@
 	#deffunc arrangeMenuBarStat	//メニュバーの状態を整理する
 		CheckMenuRadioItem hSubMenu_mag@, IDM_mag_1,IDM_mag_4, IDM_mag_1+magDisp@/2, MF_BYCOMMAND	//ウィンドウ
 		if (flg_projLoaded@) {	//プロジェクトが読み込まれているとき
-			EnableMenuItem hMenu_file@, IDM_saveas, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_prop, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_close, MF_ENABLED	//ファイル
+			EnableMenuItem hMenu_file@, IDM_saveas, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_close, MF_ENABLED	//ファイル
 			EnableMenuItem hMenu_window@, IDM_viewTopLeft, MF_ENABLED	//ウィンドウ
 			EnableMenuItem hMenu_display@, IDM_showCmtTags, MF_ENABLED : if (opt_showCmtTags@) {CheckMenuItem hMenu_display@, IDM_showCmtTags, MF_CHECKED} else {CheckMenuItem hMenu_display@, IDM_showCmtTags, MF_UNCHECKED}	//表示
 			if (isReadOnlyCurProj) {	//読み取り専用
-				EnableMenuItem hMenu_file@, IDM_save, MF_GRAYED	//ファイル
+				EnableMenuItem hMenu_file@, IDM_save, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_prop, MF_ENABLED	//ファイル
 				/* 基板 */
 					repeat 2,0 : EnableMenuItem hMenu_board@, cnt, MF_GRAYED|MF_BYPOSITION : loop
 					repeat 2,2 : EnableMenuItem hMenu_board@, cnt, MF_ENABLED|MF_BYPOSITION : loop
@@ -119,13 +119,13 @@
 					if (opt_back_showFrontWires@) {CheckMenuItem hSubMenu_back@, IDM_back_showFrontWires, MF_CHECKED} else {CheckMenuItem hSubMenu_back@, IDM_back_showFrontWires, MF_UNCHECKED}
 					if (opt_back_mirror@) {CheckMenuItem hSubMenu_back@, IDM_back_mirror, MF_CHECKED} else {CheckMenuItem hSubMenu_back@, IDM_back_mirror, MF_UNCHECKED}
 				if (stat_edit@==ES_IDLE) {	//編集がアイドル状態なら
-					EnableMenuItem hMenu_file@, IDM_new, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_open, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_close, MF_ENABLED	//ファイル
+					EnableMenuItem hMenu_file@, IDM_new, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_open, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_close, MF_ENABLED : EnableMenuItem hMenu_file@, IDM_prop, MF_ENABLED	//ファイル
 					EnableMenuItem hMenu_board@, IDM_chgNumHoles, MF_ENABLED : EnableMenuItem hMenu_board@, IDM_mergeBoard, MF_ENABLED	//基板
 					/* オブジェクト */
 						EnableMenuItem hMenu_obj@, IDM_addPart, MF_ENABLED : EnableMenuItem hMenu_obj@, IDM_addCmtTag, MF_ENABLED
 						if (numObjsCurProj>0) {EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_ENABLED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_ENABLED} else {EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_GRAYED}
 				} else {
-					EnableMenuItem hMenu_file@, IDM_new, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_open, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_close, MF_GRAYED	//ファイル
+					EnableMenuItem hMenu_file@, IDM_new, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_open, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_close, MF_GRAYED : EnableMenuItem hMenu_file@, IDM_prop, MF_GRAYED	//ファイル
 					EnableMenuItem hMenu_board@, IDM_chgNumHoles, MF_GRAYED : EnableMenuItem hMenu_board@, IDM_mergeBoard, MF_GRAYED	//基板
 					EnableMenuItem hMenu_obj@, IDM_addPart, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_addCmtTag, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_autoAnn, MF_GRAYED : EnableMenuItem hMenu_obj@, IDM_slideObjs, MF_GRAYED	//オブジェクト
 				}
