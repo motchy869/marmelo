@@ -21,8 +21,8 @@
 			//メジャー,マイナー,リビジョンにこの順に8bitずつ割り当てて配置したものをバージョン数値とする
 			/* アプリ */
 				#define global APPVER_MAJOR		1
-				#define global APPVER_MINOR		5
-				#define global APPVER_REVISION	4
+				#define global APPVER_MINOR		6
+				#define global APPVER_REVISION	0
 				#const global APPVER	serializeVer(APPVER_MAJOR, APPVER_MINOR, APPVER_REVISION)
 				APPVER_STR = str(APPVER_MAJOR) + "." + APPVER_MINOR + "." + APPVER_REVISION
 			/* 直接サポートする回路図ファイル */
