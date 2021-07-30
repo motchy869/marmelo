@@ -281,7 +281,7 @@ netexec@ : netgetv@	//とにかく書かなければ何故か認識しない
 						if (LATEST_VER > APPVER) {
 							if (IsWindowVisible(hwnd_splash@)) {gsel WID_SPLASH} else {gsel WID_MAIN}
 							dialog "より新しいバージョンが利用できます。\nダウンロードページを開きますか？\n\n使用中 : ver " + APPVER_STR@ + "\n最新版 : ver " + html, 2, "marmelo の更新"
-							if (stat == 6) {exec "https://github.com/motchy869/marmelo", 16}
+							if (stat == 6) {exec "https://github.com/motchy869/marmelo/releases", 16}
 						}
 					}
 				}

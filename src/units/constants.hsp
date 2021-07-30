@@ -22,7 +22,7 @@
 			/* アプリ */
 				#define global APPVER_MAJOR		1
 				#define global APPVER_MINOR		6
-				#define global APPVER_REVISION	0
+				#define global APPVER_REVISION	1
 				#const global APPVER	serializeVer(APPVER_MAJOR, APPVER_MINOR, APPVER_REVISION)
 				APPVER_STR = str(APPVER_MAJOR) + "." + APPVER_MINOR + "." + APPVER_REVISION
 			/* 直接サポートする回路図ファイル */
@@ -32,7 +32,7 @@
 				#const global MBDVER_DS serializeVer(MBDVER_MAJOR, MBDVER_MINOR, MBDVER_REVISION)	//DS: "Directly Support"
 				MBDVER_DS_STR = str(MBDVER_MAJOR) + "." + MBDVER_MINOR + "." + MBDVER_REVISION
 		#define global nameExt	"mbd"	//拡張子。marmeloBoardData
-	
+
 	/* 識別子 */
 		#enum global SIDE_FRONT=0
 		#enum global SIDE_BACK
